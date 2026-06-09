@@ -34,6 +34,7 @@
 - GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
+- Current app version: `v0.2-six-history`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`
 - Production target: `Ready`

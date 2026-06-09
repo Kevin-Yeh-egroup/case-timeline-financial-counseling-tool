@@ -51,3 +51,25 @@
 - This is a public review-stage deployment.
 - Noindex controls reduce search indexing; they are not access control.
 - The prototype contains sample data only and should not receive real case data on this public URL.
+
+## v0.2 Six-History Update
+
+- Date: 2026-06-09
+- Application update commit: `9459b7efcc8c9e17870ee5b8c76c12dc87ef63e8`
+- Deployment verified before this log entry was committed: `dpl_99x5fQFRWoWdKK2kNuDCqQ8PnGRn`
+- Stable public URL: `https://case-timeline-financial-counseling.vercel.app/`
+- Update summary:
+  - Changed timeline lanes to residence/migration, employment/education, relationship/family, illness/health, social-resource use, and major financial events.
+  - Added context-tab history interpretation prompts.
+  - Added event `impact` and `unknowns` fields.
+  - Added Excel export sheets for six-history interpretation and research-summary notes.
+  - Added `RESEARCH_NOTES.md` with source-backed synthesis and no republished transcripts.
+- Production browser verification:
+  - default metrics: events `6`, decisions `3`, history coverage `6/6`
+  - context tab: `6` history guide cards and `10` Taiwan context rows
+  - dummy event add flow: event count updated to `7`
+  - Excel export probe: sheet count `7`, history guides `6`, research rows `4`
+  - mobile check: no whole-page horizontal overflow; timeline and tabs use internal horizontal scroll
+  - console errors: none observed
+
+Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://case-timeline-financial-counseling.vercel.app --scope egroup-task3s-projects` to confirm the current deployment behind the stable alias.
