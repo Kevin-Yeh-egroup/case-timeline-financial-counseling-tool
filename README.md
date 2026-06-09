@@ -1,6 +1,6 @@
 # Case Timeline Financial Counseling Tool
 
-Public-safe static web tool for Taiwan social workers, financial-health counselors, and helping professionals to organize case timelines, decision nodes, and six life-history domains: residence/migration, employment/education, relationship/family, illness/health, social-resource use, and major financial events.
+Public-safe static web tool for Taiwan social workers, financial-health counselors, and helping professionals to organize case timelines, decision nodes, related people/key network members, and six life-history domains: residence/migration, employment/education, relationship/family, illness/health, social-resource use, and major financial events.
 
 ## Scope
 
@@ -12,7 +12,7 @@ Public-safe static web tool for Taiwan social workers, financial-health counselo
 - Excel download is generated in the browser as `.xlsx`.
 - Public prototype should use sample data only unless the responsible institution explicitly approves real-case handling.
 - Review-stage noindex controls are intentionally enabled.
-- Version `v0.4` keeps the AI import flow and revises reader-facing wording for Taiwan social-work usage.
+- Version `v0.5` adds related people/key network members and lets events and decisions link to people or organizations beyond the client.
 
 ## Safety Boundaries
 
@@ -36,7 +36,7 @@ The AI import flow creates editable drafts only. A social worker or helping prof
 
 - `index.html`: app shell
 - `styles.css`: responsive interface styling
-- `app.js`: timeline, chart, decision-card, AI import draft queue, safety-check, and XLSX export logic
+- `app.js`: timeline, related-person, chart, decision-card, AI import draft queue, safety-check, and XLSX export logic
 - `api/analyze.js`: optional OpenAI structured analysis endpoint
 - `api/extract-file.js`: optional file text-extraction endpoint
 - `robots.txt`: review-stage search blocking hint

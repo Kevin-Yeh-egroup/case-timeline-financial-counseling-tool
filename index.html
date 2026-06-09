@@ -6,6 +6,7 @@
     <meta name="robots" content="noindex,nofollow,noarchive" />
     <meta name="description" content="台灣社工與馴錢師使用的個案時間軸視覺化工具。" />
     <title>個案時間軸整理工具</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f766e'/%3E%3Cpath d='M8 10h16v3H8zm0 6h16v3H8zm0 6h10v3H8z' fill='white'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -29,7 +30,7 @@
 
       <section class="notice-band" aria-label="公開版資料邊界">
         <strong>公開版僅使用假資料。</strong>
-        <span>本版聚焦居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用與重大財務事件；所有輸入保存在本機瀏覽器，下載 Excel 時不會上傳個案資料。</span>
+        <span>本版聚焦居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用、重大財務事件與相關關係人；所有輸入保存在本機瀏覽器，下載 Excel 時不會上傳個案資料。</span>
       </section>
 
       <section class="summary-grid" aria-label="摘要指標">
@@ -38,12 +39,14 @@
         <div class="metric green"><span>涵蓋歷程</span><strong id="metricCovered">0/6</strong></div>
         <div class="metric amber"><span>財務事件</span><strong id="metricMoney">0</strong></div>
         <div class="metric red"><span>高度敏感</span><strong id="metricSensitive">0</strong></div>
+        <div class="metric purple"><span>其他關係人</span><strong id="metricStakeholders">0</strong></div>
         <div class="metric blue"><span>待確認</span><strong id="metricPending">0</strong></div>
       </section>
 
       <nav class="tabs" aria-label="工作區切換">
         <button class="tab active" data-tab="timeline" type="button">時間軸</button>
         <button class="tab" data-tab="ai" type="button">AI 匯入</button>
+        <button class="tab" data-tab="stakeholders" type="button">關係人</button>
         <button class="tab" data-tab="events" type="button">事件資料</button>
         <button class="tab" data-tab="context" type="button">歷程解讀</button>
         <button class="tab" data-tab="decisions" type="button">決策節點</button>
@@ -105,6 +108,58 @@
         </div>
       </section>
 
+      <section class="workspace" id="tab-stakeholders">
+        <div class="data-layout">
+          <form class="panel form-panel" id="stakeholderForm">
+            <div class="section-head">
+              <h2>新增關係人</h2>
+            </div>
+            <label>稱謂或角色<input name="label" required value="主要照顧者" /></label>
+            <label>與案主關係
+              <select name="relation" required>
+                <option selected>主要照顧者</option>
+                <option>子女</option>
+                <option>配偶/伴侶</option>
+                <option>前配偶/前伴侶</option>
+                <option>父母</option>
+                <option>手足/親屬</option>
+                <option>雇主/學校</option>
+                <option>房東</option>
+                <option>債權人/金融機構</option>
+                <option>社工/承辦</option>
+                <option>其他網絡成員</option>
+              </select>
+            </label>
+            <label>目前互動狀態
+              <select name="stance">
+                <option selected>待釐清</option>
+                <option>支持</option>
+                <option>壓力來源</option>
+                <option>資源窗口</option>
+                <option>風險來源</option>
+                <option>混合/變動</option>
+              </select>
+            </label>
+            <label>敏感度
+              <select name="sensitivity">
+                <option>一般</option>
+                <option selected>內部</option>
+                <option>高度敏感</option>
+                <option>不可外部分享</option>
+              </select>
+            </label>
+            <label>關係脈絡<textarea name="notes" rows="3">請用角色或稱謂描述，避免填入真實姓名、地址、電話或身分證字號。</textarea></label>
+            <button class="primary" type="submit">新增關係人</button>
+          </form>
+          <section class="panel cards-panel">
+            <div class="section-head">
+              <h2>關係人列表</h2>
+            </div>
+            <div id="stakeholderList" class="stakeholder-list"></div>
+          </section>
+        </div>
+      </section>
+
       <section class="workspace" id="tab-events">
         <div class="data-layout">
           <form class="panel form-panel" id="eventForm">
@@ -123,6 +178,10 @@
                 <option selected>重大財務事件</option>
               </select>
             </label>
+            <fieldset class="option-group">
+              <legend>相關關係人</legend>
+              <div id="eventStakeholderOptions" class="choice-grid"></div>
+            </fieldset>
             <label>事件標題<input name="title" required value="低收資格異動與繳存中斷" /></label>
             <label>事件事實<textarea name="fact" rows="3">家庭現金流不足，兒少教育發展帳戶或固定支出繳存中斷，需確認資格、文件與當時支出壓力。</textarea></label>
             <label>案主說法<textarea name="voice" rows="2">不是不想存，是那陣子先處理眼前的錢。</textarea></label>
@@ -195,6 +254,10 @@
             </div>
             <label>連結事件 ID<input name="eventId" value="E001" /></label>
             <label>決策問題<input name="question" required value="付款中斷後如何處理？" /></label>
+            <fieldset class="option-group">
+              <legend>相關關係人</legend>
+              <div id="decisionStakeholderOptions" class="choice-grid"></div>
+            </fieldset>
             <label>當時可行選項<textarea name="options" rows="2">繳最低、協商、求助、延後付款、暫停其他支出。</textarea></label>
             <label>最大擔心<textarea name="fear" rows="2">居住、照顧或工作安排中斷。</textarea></label>
             <label>脈絡解讀<textarea name="interpretation" rows="3">在短期安全與長期債務成本間取捨，需確認當時資訊與可行選項。</textarea></label>

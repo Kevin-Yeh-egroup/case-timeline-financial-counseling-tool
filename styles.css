@@ -14,6 +14,8 @@
   --red-weak: #fde2e2;
   --green: #2f855a;
   --green-weak: #e2f4e8;
+  --purple: #6d3aa8;
+  --purple-weak: #eee7fb;
   --shadow: 0 1px 3px rgba(31, 42, 55, 0.08);
 }
 
@@ -164,6 +166,10 @@ h2 {
   border-left-color: var(--green);
 }
 
+.metric.purple {
+  border-left-color: var(--purple);
+}
+
 .tabs {
   max-width: 1440px;
   margin: 0 auto 12px;
@@ -260,6 +266,50 @@ textarea {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
+}
+
+.option-group {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px;
+  margin: 0;
+}
+
+.option-group legend {
+  padding: 0 4px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.choice-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.choice-item input {
+  width: auto;
+}
+
+.choice-item span {
+  overflow-wrap: anywhere;
 }
 
 .button-row {
@@ -516,6 +566,7 @@ tbody tr:nth-child(even) {
   overflow-wrap: anywhere;
 }
 
+.stakeholder-list,
 .decision-list,
 .draft-list,
 .check-list {
@@ -523,6 +574,7 @@ tbody tr:nth-child(even) {
   gap: 10px;
 }
 
+.stakeholder-card,
 .decision-card,
 .draft-card,
 .check-item {
@@ -530,6 +582,40 @@ tbody tr:nth-child(even) {
   border-radius: 6px;
   padding: 10px;
   background: #fff;
+}
+
+.stakeholder-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 10px;
+  align-items: start;
+}
+
+.stakeholder-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.stakeholder-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.stakeholder-card .full {
+  grid-column: 1 / -1;
+}
+
+.stakeholder-card button {
+  grid-column: 1 / -1;
+  justify-self: end;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--red-weak);
+  color: var(--red);
+  padding: 5px 9px;
+  font-weight: 800;
 }
 
 .decision-card h3 {
@@ -635,6 +721,10 @@ tbody tr:nth-child(even) {
   .draft-grid {
     grid-template-columns: 1fr;
   }
+
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -656,6 +746,10 @@ tbody tr:nth-child(even) {
   }
 
   .check-item {
+    grid-template-columns: 1fr;
+  }
+
+  .stakeholder-card {
     grid-template-columns: 1fr;
   }
 }

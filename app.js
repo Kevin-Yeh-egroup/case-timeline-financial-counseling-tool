@@ -1,4 +1,4 @@
-const CURRENT_STATE_VERSION = "v0.4-taiwan-wording";
+const CURRENT_STATE_VERSION = "v0.5-related-people";
 const lanes = ["居住遷移史", "就業與就學史", "感情與家庭史", "疾病與身心健康史", "社會資源使用歷程", "重大財務事件"];
 const laneAliases = {
   "就業就學史": "就業與就學史",
@@ -73,7 +73,7 @@ const researchRows = [
   ["個資法與倫理界線", "歷程資料含婚姻、家庭、教育、職業、醫療、健康、財務與社會活動。", "分享前檢查保留高敏感、最小必要與外部摘要檢核。"]
 ];
 
-const workbookSheetNames = ["事件時間軸", "決策節點卡", "待確認草稿", "六大歷程解讀", "台灣制度背景", "研究依據摘要", "分享前檢查", "非責備語言"];
+const workbookSheetNames = ["事件時間軸", "決策節點卡", "關係人", "待確認草稿", "六大歷程解讀", "台灣制度背景", "研究依據摘要", "分享前檢查", "非責備語言"];
 
 const languageRows = [
   ["亂花錢", "支出可能承載急迫需求、關係義務或情緒調節，需確認用途與情境。"],
@@ -103,6 +103,49 @@ const safetyItems = [
   ["督導確認", "紅線事件是否需要督導、主管或合格專業確認。"],
 ];
 
+const sampleStakeholders = [
+  {
+    id: "A001",
+    label: "案主本人",
+    relation: "本人",
+    stance: "主要當事人",
+    sensitivity: "內部",
+    notes: "所有事件預設與案主本人有關；公開版只使用稱謂，不填真名。"
+  },
+  {
+    id: "A002",
+    label: "子女",
+    relation: "子女",
+    stance: "受影響者",
+    sensitivity: "高度敏感",
+    notes: "涉及未成年資料時需最小必要，外部分享前應去識別化。"
+  },
+  {
+    id: "A003",
+    label: "主要照顧者",
+    relation: "主要照顧者",
+    stance: "支持/壓力並存",
+    sensitivity: "內部",
+    notes: "可能影響照顧安排、居住選擇與就業可行性。"
+  },
+  {
+    id: "A004",
+    label: "社工/承辦窗口",
+    relation: "社工/承辦",
+    stance: "資源窗口",
+    sensitivity: "內部",
+    notes: "用於標示資源申請、資格確認與轉介分工。"
+  },
+  {
+    id: "A005",
+    label: "債權人/金融機構",
+    relation: "債權人/金融機構",
+    stance: "壓力來源",
+    sensitivity: "高度敏感",
+    notes: "只記錄角色與互動壓力，不在公開版放帳號、姓名或催收細節。"
+  }
+];
+
 const sampleEvents = [
   {
     id: "E001",
@@ -113,6 +156,7 @@ const sampleEvents = [
     fact: "家庭照顧安排改變，案主搬到親屬或安置地；就學與支持網絡重新整理。",
     voice: "那時候先有地方住比較重要。",
     source: "當事人口述 / 社工摘要",
+    actorIds: ["A001", "A003"],
     sensitivity: "內部",
     confidence: "低",
     impact: "安全感、就學穩定與後續對制度的信任。",
@@ -128,6 +172,7 @@ const sampleEvents = [
     fact: "收入來源改為臨時或不定時工作，薪資、工時與勞保狀態需再確認。",
     voice: "哪邊有工作就去哪邊做。",
     source: "當事人口述",
+    actorIds: ["A001"],
     sensitivity: "內部",
     confidence: "中",
     impact: "現金流不穩，可能影響固定支出、租金與還款承諾。",
@@ -143,6 +188,7 @@ const sampleEvents = [
     fact: "家庭照顧與固定支出增加，伴侶、親屬或主要照顧者的支持程度影響金錢決策。",
     voice: "希望孩子未來有一筆可以用的錢。",
     source: "當事人口述 / 轉介單摘要",
+    actorIds: ["A001", "A002", "A003"],
     sensitivity: "內部",
     confidence: "中",
     impact: "照顧時間、就業安排與儲蓄承諾互相拉扯。",
@@ -158,6 +204,7 @@ const sampleEvents = [
     fact: "家庭成員就醫或身心狀態影響工作時間、交通與支出安排，需只記錄工作必要資訊。",
     voice: "那時候很多事情先顧身體和家裡。",
     source: "當事人口述 / 醫療相關摘要",
+    actorIds: ["A001", "A003"],
     sensitivity: "高度敏感",
     confidence: "低",
     impact: "可能造成收入減少、回覆延遲、付款中斷或資源申請困難。",
@@ -173,6 +220,7 @@ const sampleEvents = [
     fact: "低收/中低收資格、兒少教育發展帳戶或補助資格需重新確認。",
     voice: "不是不想存，是那陣子先處理眼前的錢。",
     source: "轉介單 / 公文摘要",
+    actorIds: ["A001", "A002", "A004"],
     sensitivity: "內部",
     confidence: "中",
     impact: "短期現金流可能使長期資產形成承諾中斷。",
@@ -188,6 +236,7 @@ const sampleEvents = [
     fact: "付款中斷或只繳最低應繳，需確認循環利息、催收、借貸來源與安全狀態。",
     voice: "先撐過當月房租與孩子費用。",
     source: "當事人口述 / 帳單摘要",
+    actorIds: ["A001", "A002", "A005"],
     sensitivity: "高度敏感",
     confidence: "低",
     impact: "可能牽動居住、家庭照顧、正式協商與對銀行/制度信任。",
@@ -202,6 +251,7 @@ const sampleDecisions = [
     eventId: "E006",
     question: "付款中斷後如何處理？",
     options: "繳最低、協商、求助、延後付款、暫停其他支出。",
+    actorIds: ["A001", "A002", "A005"],
     fear: "居住、照顧或工作安排中斷。",
     interpretation: "在短期安全與長期債務成本間取捨，需確認當時資訊與可行選項。"
   },
@@ -210,6 +260,7 @@ const sampleDecisions = [
     eventId: "E003",
     question: "是否維持兒少教育發展帳戶繳存？",
     options: "續繳、降額、暫停、詢問社工。",
+    actorIds: ["A001", "A002", "A004"],
     fear: "孩子未來資產累積中斷，但當月生活費已不足。",
     interpretation: "家庭可能認同長期儲蓄，但短期現金流使承諾中斷。"
   },
@@ -218,6 +269,7 @@ const sampleDecisions = [
     eventId: "E002",
     question: "是否接受不定時工作以先補現金流？",
     options: "接短工、找正式職缺、先處理照顧/就醫、連結就服或職訓。",
+    actorIds: ["A001", "A003"],
     fear: "正式工作可能讓福利資格、照顧安排或身心狀態更不穩。",
     interpretation: "工作選擇不是單純意願問題，需同步看資格門檻、照顧責任與健康可負荷程度。"
   }
@@ -228,6 +280,7 @@ let state = loadState();
 function defaultState() {
   return {
     version: CURRENT_STATE_VERSION,
+    stakeholders: structuredClone(sampleStakeholders),
     events: structuredClone(sampleEvents),
     decisions: structuredClone(sampleDecisions),
     drafts: [],
@@ -241,12 +294,14 @@ function loadState() {
     const saved = JSON.parse(localStorage.getItem("caseTimelineToolState") || "null");
     if (saved && Array.isArray(saved.events) && Array.isArray(saved.decisions)) {
       const base = defaultState();
+      const stakeholders = normalizeStakeholders(saved.stakeholders || base.stakeholders);
       return {
         ...base,
         ...saved,
         version: CURRENT_STATE_VERSION,
-        events: saved.events.map((event) => ({ ...event, lane: normalizeLane(event.lane) })),
-        decisions: saved.decisions,
+        stakeholders,
+        events: saved.events.map((event) => ({ ...event, lane: normalizeLane(event.lane), actorIds: normalizeActorIds(event.actorIds, stakeholders) })),
+        decisions: saved.decisions.map((decision) => ({ ...decision, actorIds: normalizeActorIds(decision.actorIds, stakeholders) })),
         drafts: Array.isArray(saved.drafts) ? saved.drafts.map((draft) => draft.type === "event" ? { ...draft, lane: normalizeLane(draft.lane) } : draft) : [],
         checks: Array.isArray(saved.checks) ? saved.checks : base.checks,
         yearMode: saved.yearMode === "ad" ? "ad" : "roc"
@@ -280,9 +335,39 @@ function normalizeLane(lane) {
   return lanes.includes(value) ? value : "重大財務事件";
 }
 
+function normalizeStakeholders(items) {
+  const list = Array.isArray(items) ? items : [];
+  const normalized = list.map((item, index) => ({
+    id: item.id || `A${String(index + 1).padStart(3, "0")}`,
+    label: item.label || item.name || "未命名關係人",
+    relation: item.relation || "其他網絡成員",
+    stance: item.stance || "待釐清",
+    sensitivity: item.sensitivity || "內部",
+    notes: item.notes || ""
+  }));
+  if (!normalized.some((item) => item.id === "A001")) {
+    normalized.unshift(structuredClone(sampleStakeholders[0]));
+  }
+  return normalized;
+}
+
+function normalizeActorIds(actorIds, stakeholders = state?.stakeholders || sampleStakeholders) {
+  const validIds = new Set(stakeholders.map((item) => item.id));
+  const ids = Array.isArray(actorIds) ? actorIds : [];
+  const filtered = ids.filter((id) => validIds.has(id));
+  return filtered.length ? [...new Set(filtered)] : ["A001"];
+}
+
+function stakeholderNames(actorIds) {
+  const lookup = new Map(state.stakeholders.map((item) => [item.id, item.label]));
+  return normalizeActorIds(actorIds).map((id) => lookup.get(id) || id).join("、");
+}
+
 function render() {
   saveState();
   renderSummary();
+  renderStakeholderList();
+  renderStakeholderOptions();
   renderTimeline();
   renderLaneChart();
   renderEventsTable();
@@ -300,7 +385,37 @@ function renderSummary() {
   $("#metricCovered").textContent = `${new Set(state.events.map((e) => normalizeLane(e.lane)).filter((lane) => lanes.includes(lane))).size}/${lanes.length}`;
   $("#metricMoney").textContent = state.events.filter((e) => normalizeLane(e.lane) === "重大財務事件").length;
   $("#metricSensitive").textContent = state.events.filter((e) => ["高度敏感", "不可外部分享"].includes(e.sensitivity)).length;
+  $("#metricStakeholders").textContent = state.stakeholders.filter((item) => item.id !== "A001").length;
   $("#metricPending").textContent = state.events.filter((e) => e.confidence === "低").length;
+}
+
+function renderStakeholderList() {
+  const target = $("#stakeholderList");
+  if (!target) return;
+  target.innerHTML = state.stakeholders.map((item) => `
+    <article class="stakeholder-card">
+      <div>
+        <h3>${esc(item.label)}</h3>
+        <p>${esc(item.relation)} / ${esc(item.stance)}</p>
+      </div>
+      <span class="badge ${item.sensitivity === "高度敏感" || item.sensitivity === "不可外部分享" ? "red" : "amber"}">${esc(item.sensitivity)}</span>
+      <p class="full">${esc(item.notes || "尚未補充關係脈絡。")}</p>
+      ${item.id === "A001" ? "" : `<button type="button" data-delete-stakeholder="${esc(item.id)}">移除</button>`}
+    </article>
+  `).join("");
+}
+
+function renderStakeholderOptions() {
+  const html = state.stakeholders.map((item) => `
+    <label class="choice-item">
+      <input type="checkbox" name="actorIds" value="${esc(item.id)}" ${item.id === "A001" ? "checked" : ""} />
+      <span>${esc(item.label)}</span>
+    </label>
+  `).join("");
+  const eventOptions = $("#eventStakeholderOptions");
+  const decisionOptions = $("#decisionStakeholderOptions");
+  if (eventOptions) eventOptions.innerHTML = html;
+  if (decisionOptions) decisionOptions.innerHTML = html;
 }
 
 function renderTimeline() {
@@ -366,6 +481,7 @@ function renderEventsTable() {
         <div class="event-detail">
           <strong>${esc(e.title)}</strong>
           <span>${esc(e.fact)}</span>
+          <span><em>關係人</em> ${esc(stakeholderNames(e.actorIds))}</span>
           <span><em>影響</em> ${esc(e.impact || "待補")}</span>
           <span><em>待釐清</em> ${esc(e.unknowns || "待補")}</span>
         </div>
@@ -450,6 +566,7 @@ function confirmDraft(index) {
       id: nextId("D", state.decisions),
       eventId: draft.eventId || "",
       question: draft.question || "待補決策問題",
+      actorIds: normalizeActorIds(draft.actorIds),
       options: draft.options || "待補當時可行選項",
       fear: draft.fear || "待補最大擔心",
       interpretation: draft.interpretation || "待補脈絡解讀"
@@ -464,6 +581,7 @@ function confirmDraft(index) {
       fact: draft.fact || "待補事件事實",
       voice: draft.voice || "",
       source: draft.source || "AI 匯入草稿",
+      actorIds: normalizeActorIds(draft.actorIds),
       sensitivity: draft.sensitivity || "內部",
       confidence: draft.confidence || "低",
       impact: draft.impact || "待補脈絡影響",
@@ -509,6 +627,7 @@ function renderDecisionCards() {
       <h3>${esc(d.id)} ${esc(d.question)}</h3>
       <dl>
         <dt>連結事件</dt><dd>${esc(d.eventId || "未連結")}</dd>
+        <dt>相關關係人</dt><dd>${esc(stakeholderNames(d.actorIds))}</dd>
         <dt>當時可行選項</dt><dd>${esc(d.options)}</dd>
         <dt>最大擔心</dt><dd>${esc(d.fear)}</dd>
         <dt>脈絡解讀</dt><dd>${esc(d.interpretation)}</dd>
@@ -535,6 +654,7 @@ function updateExportProbe() {
   const blob = buildXlsx();
   probe.dataset.eventCount = String(state.events.length);
   probe.dataset.decisionCount = String(state.decisions.length);
+  probe.dataset.stakeholderCount = String(state.stakeholders.length);
   probe.dataset.draftCount = String(state.drafts.length);
   probe.dataset.historyCoverage = String(new Set(state.events.map((e) => normalizeLane(e.lane)).filter((lane) => lanes.includes(lane))).size);
   probe.dataset.sheetCount = String(workbookSheetNames.length);
@@ -568,9 +688,25 @@ function bindEvents() {
     render();
   });
 
-  $("#eventForm").addEventListener("submit", (event) => {
+  $("#stakeholderForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget));
+    state.stakeholders.push({
+      id: nextId("A", state.stakeholders),
+      label: data.label,
+      relation: data.relation,
+      stance: data.stance,
+      sensitivity: data.sensitivity,
+      notes: data.notes
+    });
+    event.currentTarget.reset();
+    render();
+  });
+
+  $("#eventForm").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData);
     state.events.push({
       id: nextId("E", state.events),
       rocYear: Number(data.rocYear),
@@ -580,6 +716,7 @@ function bindEvents() {
       fact: data.fact,
       voice: data.voice,
       source: "使用者新增",
+      actorIds: normalizeActorIds(formData.getAll("actorIds")),
       sensitivity: data.sensitivity,
       confidence: data.confidence,
       impact: data.impact,
@@ -591,11 +728,13 @@ function bindEvents() {
 
   $("#decisionForm").addEventListener("submit", (event) => {
     event.preventDefault();
-    const data = Object.fromEntries(new FormData(event.currentTarget));
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData);
     state.decisions.push({
       id: nextId("D", state.decisions),
       eventId: data.eventId,
       question: data.question,
+      actorIds: normalizeActorIds(formData.getAll("actorIds")),
       options: data.options,
       fear: data.fear,
       interpretation: data.interpretation
@@ -608,6 +747,13 @@ function bindEvents() {
     if (id) {
       state.events = state.events.filter((item) => item.id !== id);
       state.decisions = state.decisions.filter((item) => item.eventId !== id);
+      render();
+    }
+    const stakeholderId = event.target?.dataset?.deleteStakeholder;
+    if (stakeholderId) {
+      state.stakeholders = state.stakeholders.filter((item) => item.id !== stakeholderId);
+      state.events = state.events.map((item) => ({ ...item, actorIds: normalizeActorIds((item.actorIds || []).filter((id) => id !== stakeholderId)) }));
+      state.decisions = state.decisions.map((item) => ({ ...item, actorIds: normalizeActorIds((item.actorIds || []).filter((id) => id !== stakeholderId)) }));
       render();
     }
   });
@@ -946,15 +1092,22 @@ function buildXlsx() {
     {
       name: "事件時間軸",
       rows: [
-        ["ID", "民國年", "西元年", "年齡", "歷程面向", "事件標題", "事件事實", "案主說法", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
-        ...state.events.map((e) => [e.id, e.rocYear, Number(e.rocYear) + 1911, e.age, normalizeLane(e.lane), e.title, e.fact, e.voice, e.impact || "", e.unknowns || "", e.source, e.sensitivity, e.confidence, e.nextStep])
+        ["ID", "民國年", "西元年", "年齡", "歷程面向", "事件標題", "事件事實", "案主說法", "相關關係人", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
+        ...state.events.map((e) => [e.id, e.rocYear, Number(e.rocYear) + 1911, e.age, normalizeLane(e.lane), e.title, e.fact, e.voice, stakeholderNames(e.actorIds), e.impact || "", e.unknowns || "", e.source, e.sensitivity, e.confidence, e.nextStep])
       ]
     },
     {
       name: "決策節點卡",
       rows: [
-        ["ID", "連結事件", "決策問題", "當時可行選項", "最大擔心", "脈絡解讀"],
-        ...state.decisions.map((d) => [d.id, d.eventId, d.question, d.options, d.fear, d.interpretation])
+        ["ID", "連結事件", "決策問題", "相關關係人", "當時可行選項", "最大擔心", "脈絡解讀"],
+        ...state.decisions.map((d) => [d.id, d.eventId, d.question, stakeholderNames(d.actorIds), d.options, d.fear, d.interpretation])
+      ]
+    },
+    {
+      name: "關係人",
+      rows: [
+        ["ID", "稱謂或角色", "與案主關係", "目前互動狀態", "敏感度", "關係脈絡"],
+        ...state.stakeholders.map((item) => [item.id, item.label, item.relation, item.stance, item.sensitivity, item.notes])
       ]
     },
     {
@@ -1188,6 +1341,7 @@ window.caseTimelineTool = {
     return {
       eventCount: state.events.length,
       decisionCount: state.decisions.length,
+      stakeholderCount: state.stakeholders.length,
       draftCount: state.drafts.length,
       historyCoverage: new Set(state.events.map((e) => normalizeLane(e.lane)).filter((lane) => lanes.includes(lane))).size,
       sheetCount: workbookSheetNames.length,

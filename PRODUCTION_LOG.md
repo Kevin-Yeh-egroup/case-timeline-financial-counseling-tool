@@ -114,3 +114,19 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - API mock without `OPENAI_API_KEY`: `/api/analyze` returned `local-fallback`, `Cache-Control: no-store`, and the revised warning text.
   - Browser desktop wording check: timeline head `歷程`; AI heading `AI 輔助匯入`; no visible `泳道`, `production`, `可選選項`, `脈絡化解讀`, `當事人說法`, or `疾病身心史`.
   - Browser mobile width `390px`: no whole-page horizontal overflow; long history label remained visible.
+
+## v0.5 Related People / Network Member Update
+
+- Date: 2026-06-09
+- Update summary:
+  - Added a `關係人` workspace for roles beyond the client, such as children, caregivers, landlords, creditors, social workers, and service windows.
+  - Added default public-safe sample related people using roles/call-signs instead of real names.
+  - Added related-person linking to event forms, decision forms, event lists, decision cards, and Excel export.
+  - Added a dedicated `關係人` Excel sheet.
+  - Kept `案主本人` as the required default actor while counting other related people separately.
+- Local predeployment verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser flow using dummy data: added `房東`, linked it to a new event, linked it to a new decision card, and confirmed both rendered the related person.
+  - Export probe after related-person flow: events `7`, decisions `4`, related people `6`, sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
+  - Mobile width `390px`: no whole-page horizontal overflow.
+  - Console errors: none observed.
