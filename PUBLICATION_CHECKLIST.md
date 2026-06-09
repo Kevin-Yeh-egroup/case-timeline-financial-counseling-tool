@@ -27,9 +27,9 @@
 - [x] AI analysis creates editable drafts instead of directly modifying the timeline.
 - [x] Confirming a draft adds it to the timeline or decision-card list.
 - [x] Excel export includes a `待確認草稿` sheet.
-- [x] Tool supports related people/key network members beyond the client.
-- [x] Events and decision cards can link to related people.
-- [x] Excel export includes a `關係人` sheet and related-person columns.
+- [x] Tool focuses the people layer on household members/cohabitants first.
+- [x] Events and decision cards can link to related household members.
+- [x] Excel export includes a `同住人口` sheet and household-member columns.
 - [x] API routes return no-store JSON responses.
 - [x] Taiwan wording pass removes reader-facing `泳道`, engineering terms, and awkward field labels.
 - [x] Production URL returns `200 OK`.
@@ -43,7 +43,7 @@
 - GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
-- Current app version: `v0.5-related-people`
+- Current app version: `v0.6-household-members`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`
 - Production target: `Ready`

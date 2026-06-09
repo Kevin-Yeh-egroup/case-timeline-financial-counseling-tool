@@ -130,3 +130,20 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Export probe after related-person flow: events `7`, decisions `4`, related people `6`, sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
   - Mobile width `390px`: no whole-page horizontal overflow.
   - Console errors: none observed.
+
+## v0.6 Household Members First
+
+- Date: 2026-06-09
+- Update summary:
+  - Refocused the people layer from broad `關係人` to `同住人口`.
+  - Replaced default sample people with household/cohabiting roles: client, child, primary caregiver, cohabiting relative, and spouse/partner.
+  - Removed landlord, creditor, and service-window roles from the primary people workflow for now.
+  - Updated event and decision labels from `相關關係人` to `相關同住人口`.
+  - Renamed the Excel sheet and columns to `同住人口`.
+- Local predeployment verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser flow using dummy data: added `同住哥哥`, linked it to a new event, linked it to a new decision card, and confirmed both rendered the household member.
+  - Wording scan: current UI did not show broad `關係人`, `利益關係人`, or `房東` wording.
+  - Export probe after household-member flow: events `7`, decisions `4`, household members `6`, sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
+  - Mobile width `390px`: no whole-page horizontal overflow.
+  - Console errors: none observed.

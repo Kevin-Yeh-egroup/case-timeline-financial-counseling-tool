@@ -1,4 +1,4 @@
-const CURRENT_STATE_VERSION = "v0.5-related-people";
+const CURRENT_STATE_VERSION = "v0.6-household-members";
 const lanes = ["居住遷移史", "就業與就學史", "感情與家庭史", "疾病與身心健康史", "社會資源使用歷程", "重大財務事件"];
 const laneAliases = {
   "就業就學史": "就業與就學史",
@@ -73,7 +73,7 @@ const researchRows = [
   ["個資法與倫理界線", "歷程資料含婚姻、家庭、教育、職業、醫療、健康、財務與社會活動。", "分享前檢查保留高敏感、最小必要與外部摘要檢核。"]
 ];
 
-const workbookSheetNames = ["事件時間軸", "決策節點卡", "關係人", "待確認草稿", "六大歷程解讀", "台灣制度背景", "研究依據摘要", "分享前檢查", "非責備語言"];
+const workbookSheetNames = ["事件時間軸", "決策節點卡", "同住人口", "待確認草稿", "六大歷程解讀", "台灣制度背景", "研究依據摘要", "分享前檢查", "非責備語言"];
 
 const languageRows = [
   ["亂花錢", "支出可能承載急迫需求、關係義務或情緒調節，需確認用途與情境。"],
@@ -108,7 +108,7 @@ const sampleStakeholders = [
     id: "A001",
     label: "案主本人",
     relation: "本人",
-    stance: "主要當事人",
+    stance: "本人",
     sensitivity: "內部",
     notes: "所有事件預設與案主本人有關；公開版只使用稱謂，不填真名。"
   },
@@ -116,7 +116,7 @@ const sampleStakeholders = [
     id: "A002",
     label: "子女",
     relation: "子女",
-    stance: "受影響者",
+    stance: "同住中",
     sensitivity: "高度敏感",
     notes: "涉及未成年資料時需最小必要，外部分享前應去識別化。"
   },
@@ -124,25 +124,25 @@ const sampleStakeholders = [
     id: "A003",
     label: "主要照顧者",
     relation: "主要照顧者",
-    stance: "支持/壓力並存",
+    stance: "同住中",
     sensitivity: "內部",
     notes: "可能影響照顧安排、居住選擇與就業可行性。"
   },
   {
     id: "A004",
-    label: "社工/承辦窗口",
-    relation: "社工/承辦",
-    stance: "資源窗口",
+    label: "同住親屬",
+    relation: "父母/親屬",
+    stance: "曾同住",
     sensitivity: "內部",
-    notes: "用於標示資源申請、資格確認與轉介分工。"
+    notes: "曾經提供住處、照顧或生活費協助，需確認同住期間與支持方式。"
   },
   {
     id: "A005",
-    label: "債權人/金融機構",
-    relation: "債權人/金融機構",
-    stance: "壓力來源",
-    sensitivity: "高度敏感",
-    notes: "只記錄角色與互動壓力，不在公開版放帳號、姓名或催收細節。"
+    label: "配偶/伴侶",
+    relation: "配偶/伴侶",
+    stance: "待確認",
+    sensitivity: "內部",
+    notes: "需確認是否同住、照顧分工、收入支援與固定支出分擔。"
   }
 ];
 
@@ -339,7 +339,7 @@ function normalizeStakeholders(items) {
   const list = Array.isArray(items) ? items : [];
   const normalized = list.map((item, index) => ({
     id: item.id || `A${String(index + 1).padStart(3, "0")}`,
-    label: item.label || item.name || "未命名關係人",
+    label: item.label || item.name || "未命名同住人口",
     relation: item.relation || "其他網絡成員",
     stance: item.stance || "待釐清",
     sensitivity: item.sensitivity || "內部",
@@ -399,7 +399,7 @@ function renderStakeholderList() {
         <p>${esc(item.relation)} / ${esc(item.stance)}</p>
       </div>
       <span class="badge ${item.sensitivity === "高度敏感" || item.sensitivity === "不可外部分享" ? "red" : "amber"}">${esc(item.sensitivity)}</span>
-      <p class="full">${esc(item.notes || "尚未補充關係脈絡。")}</p>
+      <p class="full">${esc(item.notes || "尚未補充同住或照顧脈絡。")}</p>
       ${item.id === "A001" ? "" : `<button type="button" data-delete-stakeholder="${esc(item.id)}">移除</button>`}
     </article>
   `).join("");
@@ -481,7 +481,7 @@ function renderEventsTable() {
         <div class="event-detail">
           <strong>${esc(e.title)}</strong>
           <span>${esc(e.fact)}</span>
-          <span><em>關係人</em> ${esc(stakeholderNames(e.actorIds))}</span>
+          <span><em>同住人口</em> ${esc(stakeholderNames(e.actorIds))}</span>
           <span><em>影響</em> ${esc(e.impact || "待補")}</span>
           <span><em>待釐清</em> ${esc(e.unknowns || "待補")}</span>
         </div>
@@ -627,7 +627,7 @@ function renderDecisionCards() {
       <h3>${esc(d.id)} ${esc(d.question)}</h3>
       <dl>
         <dt>連結事件</dt><dd>${esc(d.eventId || "未連結")}</dd>
-        <dt>相關關係人</dt><dd>${esc(stakeholderNames(d.actorIds))}</dd>
+        <dt>相關同住人口</dt><dd>${esc(stakeholderNames(d.actorIds))}</dd>
         <dt>當時可行選項</dt><dd>${esc(d.options)}</dd>
         <dt>最大擔心</dt><dd>${esc(d.fear)}</dd>
         <dt>脈絡解讀</dt><dd>${esc(d.interpretation)}</dd>
@@ -1092,21 +1092,21 @@ function buildXlsx() {
     {
       name: "事件時間軸",
       rows: [
-        ["ID", "民國年", "西元年", "年齡", "歷程面向", "事件標題", "事件事實", "案主說法", "相關關係人", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
+        ["ID", "民國年", "西元年", "年齡", "歷程面向", "事件標題", "事件事實", "案主說法", "相關同住人口", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
         ...state.events.map((e) => [e.id, e.rocYear, Number(e.rocYear) + 1911, e.age, normalizeLane(e.lane), e.title, e.fact, e.voice, stakeholderNames(e.actorIds), e.impact || "", e.unknowns || "", e.source, e.sensitivity, e.confidence, e.nextStep])
       ]
     },
     {
       name: "決策節點卡",
       rows: [
-        ["ID", "連結事件", "決策問題", "相關關係人", "當時可行選項", "最大擔心", "脈絡解讀"],
+        ["ID", "連結事件", "決策問題", "相關同住人口", "當時可行選項", "最大擔心", "脈絡解讀"],
         ...state.decisions.map((d) => [d.id, d.eventId, d.question, stakeholderNames(d.actorIds), d.options, d.fear, d.interpretation])
       ]
     },
     {
-      name: "關係人",
+      name: "同住人口",
       rows: [
-        ["ID", "稱謂或角色", "與案主關係", "目前互動狀態", "敏感度", "關係脈絡"],
+        ["ID", "稱謂或角色", "與案主關係", "同住狀態", "敏感度", "居住/照顧脈絡"],
         ...state.stakeholders.map((item) => [item.id, item.label, item.relation, item.stance, item.sensitivity, item.notes])
       ]
     },
