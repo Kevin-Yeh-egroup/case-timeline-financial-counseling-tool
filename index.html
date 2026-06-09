@@ -29,13 +29,14 @@
 
       <section class="notice-band" aria-label="公開版資料邊界">
         <strong>公開版僅使用假資料。</strong>
-        <span>所有輸入保存在本機瀏覽器；下載 Excel 時不會上傳個案資料。金融、法律、保護案件與正式社工評估需由相應專業確認。</span>
+        <span>本版聚焦居住遷移、就業就學、感情家庭、疾病身心、社會資源使用與重大財務事件；所有輸入保存在本機瀏覽器，下載 Excel 時不會上傳個案資料。</span>
       </section>
 
       <section class="summary-grid" aria-label="摘要指標">
         <div class="metric"><span>事件</span><strong id="metricEvents">0</strong></div>
         <div class="metric"><span>決策節點</span><strong id="metricDecisions">0</strong></div>
-        <div class="metric amber"><span>金錢事件</span><strong id="metricMoney">0</strong></div>
+        <div class="metric green"><span>涵蓋歷程</span><strong id="metricCovered">0/6</strong></div>
+        <div class="metric amber"><span>財務事件</span><strong id="metricMoney">0</strong></div>
         <div class="metric red"><span>高度敏感</span><strong id="metricSensitive">0</strong></div>
         <div class="metric blue"><span>待確認</span><strong id="metricPending">0</strong></div>
       </section>
@@ -43,6 +44,7 @@
       <nav class="tabs" aria-label="工作區切換">
         <button class="tab active" data-tab="timeline" type="button">時間軸</button>
         <button class="tab" data-tab="events" type="button">事件資料</button>
+        <button class="tab" data-tab="context" type="button">歷程解讀</button>
         <button class="tab" data-tab="decisions" type="button">決策節點</button>
         <button class="tab" data-tab="safety" type="button">分享檢查</button>
       </nav>
@@ -66,7 +68,7 @@
           </section>
           <section class="panel">
             <div class="section-head">
-              <h2>事件類型</h2>
+              <h2>歷程分布</h2>
             </div>
             <div id="laneChart" class="bar-chart" aria-label="事件類型統計"></div>
           </section>
@@ -81,19 +83,21 @@
             </div>
             <label>民國年<input name="rocYear" type="number" min="1" max="150" required value="108" /></label>
             <label>案主年齡<input name="age" type="number" min="0" max="120" value="30" /></label>
-            <label>泳道
+            <label>歷程面向
               <select name="lane" required>
-                <option>個人事件</option>
-                <option>家庭事件</option>
-                <option selected>金錢事件</option>
-                <option>制度事件</option>
-                <option>時代背景</option>
-                <option>服務介入</option>
+                <option>居住遷移史</option>
+                <option>就業就學史</option>
+                <option>感情家庭史</option>
+                <option>疾病身心史</option>
+                <option>社會資源使用歷程</option>
+                <option selected>重大財務事件</option>
               </select>
             </label>
-            <label>事件標題<input name="title" required value="付款中斷" /></label>
-            <label>事件事實<textarea name="fact" rows="3">信用卡或帳單付款中斷，需確認債務類型、催收狀態與安全風險。</textarea></label>
-            <label>當事人說法<textarea name="voice" rows="2">先撐過房租、孩子費用或生活必要支出。</textarea></label>
+            <label>事件標題<input name="title" required value="低收資格異動與繳存中斷" /></label>
+            <label>事件事實<textarea name="fact" rows="3">家庭現金流不足，兒少教育發展帳戶或固定支出繳存中斷，需確認資格、文件與當時支出壓力。</textarea></label>
+            <label>當事人說法<textarea name="voice" rows="2">不是不想存，是那陣子先處理眼前的錢。</textarea></label>
+            <label>脈絡影響<textarea name="impact" rows="2">可能牽動孩子未來資產、福利資格、家庭信任與社工後續資源連結。</textarea></label>
+            <label>待釐清<textarea name="unknowns" rows="2">當時收入、租金、照顧支出、是否已詢問社工或承辦窗口。</textarea></label>
             <label>敏感度
               <select name="sensitivity">
                 <option>一般</option>
@@ -122,7 +126,7 @@
                   <tr>
                     <th>ID</th>
                     <th>民國年</th>
-                    <th>泳道</th>
+                    <th>歷程</th>
                     <th>事件</th>
                     <th>敏感度</th>
                     <th>下一步</th>
@@ -132,6 +136,23 @@
                 <tbody id="eventsTable"></tbody>
               </table>
             </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="workspace" id="tab-context">
+        <div class="context-layout">
+          <section class="panel wide">
+            <div class="section-head">
+              <h2>六大歷程整理提示</h2>
+            </div>
+            <div id="historyGuide" class="guide-grid"></div>
+          </section>
+          <section class="panel">
+            <div class="section-head">
+              <h2>台灣制度背景</h2>
+            </div>
+            <div id="contextIndex" class="context-list"></div>
           </section>
         </div>
       </section>

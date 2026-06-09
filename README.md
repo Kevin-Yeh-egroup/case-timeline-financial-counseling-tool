@@ -1,6 +1,6 @@
 # Case Timeline Financial Counseling Tool
 
-Public-safe static web tool for Taiwan social workers, financial-health counselors, and helping professionals to organize case timelines, decision nodes, and context-aware financial events.
+Public-safe static web tool for Taiwan social workers, financial-health counselors, and helping professionals to organize case timelines, decision nodes, and six life-history domains: residence/migration, employment/education, relationship/family, illness/health, social-resource use, and major financial events.
 
 ## Scope
 
@@ -10,6 +10,7 @@ Public-safe static web tool for Taiwan social workers, financial-health counselo
 - Excel download is generated in the browser as `.xlsx`.
 - Public prototype uses sample data only.
 - Review-stage noindex controls are intentionally enabled.
+- Version `v0.2` uses six-history timeline lanes and exports interpretation prompts.
 
 ## Safety Boundaries
 
@@ -29,4 +30,4 @@ Sensitive real-case use should remain inside the responsible institution's priva
 - `app.js`: timeline, chart, decision-card, safety-check, and XLSX export logic
 - `robots.txt`: review-stage search blocking hint
 - `vercel.json`: Vercel `X-Robots-Tag` noindex header
-
+- `RESEARCH_NOTES.md`: source-backed synthesis without republishing transcripts

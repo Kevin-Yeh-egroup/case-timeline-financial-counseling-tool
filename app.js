@@ -1,15 +1,73 @@
-const lanes = ["個人事件", "家庭事件", "金錢事件", "制度事件", "時代背景", "服務介入"];
+const CURRENT_STATE_VERSION = "v0.2-six-history";
+const lanes = ["居住遷移史", "就業就學史", "感情家庭史", "疾病身心史", "社會資源使用歷程", "重大財務事件"];
 const sensitivityOptions = ["通過", "需遮罩", "需同意", "不得分享", "需督導確認"];
+
+const historyGuides = [
+  {
+    name: "居住遷移史",
+    focus: "住在哪裡、跟誰住、何時搬、搬遷是否與安全、房租、就學、照顧或工作有關。",
+    lookFor: "第一次獨立租屋、寄住、安置、中途之家、戶籍/居住地不一致、租金補貼或社宅資源。",
+    decisionMeaning: "搬遷常是風險控制與可用資源的結果，不宜直接解讀為不穩定或不負責。",
+    caution: "地址、庇護/安置地點、保護案件資訊不得外部分享。"
+  },
+  {
+    name: "就業就學史",
+    focus: "學歷、職訓、工作型態、收入穩定度、工時、照顧責任與資格門檻如何互相影響。",
+    lookFor: "非典型工作、失業、留停、照顧中斷、就學轉換、職訓、薪資與社保紀錄。",
+    decisionMeaning: "沒有穩定工作可能反映照顧、健康、交通、文件或制度誘因，不等於沒有動機。",
+    caution: "不要把收入推估寫成事實；須標示來源與待確認。"
+  },
+  {
+    name: "感情家庭史",
+    focus: "交往、婚姻、分居離婚、親職、扶養、家庭衝突與支持網絡如何影響金錢決策。",
+    lookFor: "孩子出生、前段婚姻、扶養費、照顧分工、伴侶借貸、家暴/高衝突關係。",
+    decisionMeaning: "關係義務常會改變支出優先順序；先理解誰在影響決策，再談財務方案。",
+    caution: "保護案件、未成年資料與高衝突關係需督導確認。"
+  },
+  {
+    name: "疾病身心史",
+    focus: "疾病、就醫、身心狀態、照顧負荷與醫療費用如何影響收入、支出與判斷力。",
+    lookFor: "就醫中斷、慢性病、精神健康、成癮、自傷他傷、長照需求、家庭照顧者負荷。",
+    decisionMeaning: "付款延遲、資源中斷或回覆困難，可能與症狀、照顧壓力或醫療可近性有關。",
+    caution: "醫療與精神健康資料屬高度敏感，只記錄工作必要範圍。"
+  },
+  {
+    name: "社會資源使用歷程",
+    focus: "低收/中低收、急難、兒少教育發展帳戶、租金補貼、法扶、社工與網絡資源的使用與中斷。",
+    lookFor: "資格異動、文件卡關、轉介單、資源申請成敗、跨網絡分工、服務中斷原因。",
+    decisionMeaning: "反覆求助可能是制度門檻與現金流壓力的訊號，不應只解讀為依賴資源。",
+    caution: "避免把未確認的福利身分、補助紀錄或服務紀錄外部揭露。"
+  },
+  {
+    name: "重大財務事件",
+    focus: "借貸、卡債、催收、保險、銀行帳戶、地下錢莊、協商與大額支出如何改變行動選項。",
+    lookFor: "最低應繳、循環利息、債權人、還款承諾、代辦、親友借貸、重大資金用途。",
+    decisionMeaning: "財務事件要連回當時的安全、家庭與制度選項；工具只協助整理，不代替金融或法律建議。",
+    caution: "帳號、債權人細節、借據與催收內容需去識別化。"
+  }
+];
 
 const contextRows = [
   ["卡債/雙卡風暴", "約2005-2006", "理解循環利息、最低應繳、催收恐懼與制度信任。", "https://www.npf.org.tw/2/3558"],
-  ["消費者債務清理前置協商", "2008後制度化", "工具只準備資料與問題清單，不代談條件。", "https://www.banking.gov.tw/ch/home.jsp?id=742&parentpath=0%2C674%2C717%2C740&websitelink=artwebsite.jsp"],
-  ["社會救助法低收/中低收", "現行制度", "記錄資格異動、家庭總收入、家庭財產與應計人口。", "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0050078"],
+  ["消費者債務清理前置協商", "2008後制度化", "工具只準備資料、問題清單與轉介線索，不代談條件。", "https://www.banking.gov.tw/ch/home.jsp?id=742&parentpath=0%2C674%2C717%2C740&websitelink=artwebsite.jsp"],
+  ["社安網/脆弱家庭", "107年起推動", "單一金錢困難常連動貧窮、失業、精神疾病、家庭衝突與社會疏離。", "https://mohw.gov.tw/ss/cp-4531-50117-204.html"],
+  ["社會救助與脫貧措施", "現行制度", "記錄資格異動、家庭總收入、工作/職訓收入與自立脫貧誘因。", "https://www.mohw.gov.tw/cp-88-79005-1.html"],
   ["兒童及少年未來教育與發展帳戶", "106年開辦", "遲繳是家庭財務壓力訊號，不直接推論不重視孩子。", "https://dep.mohw.gov.tw/dosaasw/cp-3841-51050-103.html"],
+  ["租金補貼與租屋家庭", "111年起擴大", "居住遷移、房租與租約文件會牽動就學、工作、債務與資源申請。", "https://www.moi.gov.tw/News_Content.aspx?n=4&s=260249&sms=9009"],
+  ["家庭照顧與長照資源", "現行服務", "疾病與照顧負荷會改變可工作時間、收入穩定度與求助能力。", "https://www.mohw.gov.tw/cp-3210-23630-1.html"],
   ["信扶/家庭脫貧培力", "長期社工財務知能合作", "保留網絡合作、個案研討、財務諮詢與資源連結。", "https://cdj.sfaa.gov.tw/Journal/Content?gno=13248"],
-  ["個人資料保護法", "現行法規", "家庭、醫療、財務與社會活動等資料均需最小必要。", "https://law.pdpc.gov.tw/LawContent.aspx?id=FL010627"],
+  ["個人資料保護法", "現行法規", "婚姻、家庭、教育、職業、病歷、健康、財務與社會活動等資料均需最小必要。", "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=I0050021"],
   ["社會工作師倫理守則", "現行倫理", "自我決定、保密、客觀紀錄、轉介與文化脈絡。", "https://www.mohw.gov.tw/dl-85943-e9f2ffb0-f35e-4965-bf41-e8759f98ed2c.html"],
 ];
+
+const researchRows = [
+  ["使用者提供之財務諮詢師培訓素材", "重大財務事件會反覆牽動居住、照顧、工作與資源資格。", "事件表新增六大歷程面向，不只記錄金錢流水帳。"],
+  ["使用者提供之脫貧培力/經濟輔導課程素材", "社工、主管與財務諮詢師需要共同語言，並把家庭財務盤點放進網絡合作。", "Excel 匯出增加歷程解讀與研究依據摘要。"],
+  ["社安網與脆弱家庭官方資料", "家庭脆弱性需看多重因子，不能只從單一求助議題判斷。", "歷程卡提示使用者同步看居住、工作、家庭、疾病與資源。"],
+  ["個資法與倫理界線", "歷程資料含婚姻、家庭、教育、職業、醫療、健康、財務與社會活動。", "分享前檢查保留高敏感、最小必要與外部摘要檢核。"]
+];
+
+const workbookSheetNames = ["事件時間軸", "決策節點卡", "六大歷程解讀", "台灣制度背景", "研究依據摘要", "分享前檢查", "非責備語言"];
 
 const languageRows = [
   ["亂花錢", "支出可能承載急迫需求、關係義務或情緒調節，需確認用途與情境。"],
@@ -20,6 +78,8 @@ const languageRows = [
   ["不會規劃", "長期規劃被短期風險擠壓。"],
   ["衝動", "在時間壓力與資訊不足下快速決策。"],
   ["不重視孩子", "照顧或教育承諾可能被現金流或制度門檻中斷。"],
+  ["工作不穩定", "工作型態可能受照顧、健康、交通、資格與非典型勞動市場影響。"],
+  ["資源用太多", "資源使用歷程是制度可近性與安全網狀態的線索。"],
 ];
 
 const safetyItems = [
@@ -40,49 +100,100 @@ const safetyItems = [
 const sampleEvents = [
   {
     id: "E001",
-    rocYear: 86,
-    age: 27,
-    lane: "金錢事件",
-    title: "信用卡付款中斷",
-    fact: "付款中斷或只繳最低應繳，需確認循環利息、催收與安全狀態。",
-    voice: "先撐過當月房租與孩子費用。",
-    source: "當事人口述 / 帳單摘要",
-    sensitivity: "高度敏感",
+    rocYear: 85,
+    age: 16,
+    lane: "居住遷移史",
+    title: "照顧安排改變後搬遷",
+    fact: "家庭照顧安排改變，案主搬到親屬或安置地；就學與支持網絡重新整理。",
+    voice: "那時候先有地方住比較重要。",
+    source: "當事人口述 / 社工摘要",
+    sensitivity: "內部",
     confidence: "低",
-    nextStep: "補債務清冊；必要時轉官方協商或法扶。"
+    impact: "安全感、就學穩定與後續對制度的信任。",
+    unknowns: "搬遷原因、是否涉及保護/安置、當時主要支持者。",
+    nextStep: "確認搬遷資料與是否可外部分享。"
   },
   {
     id: "E002",
-    rocYear: 101,
-    age: 42,
-    lane: "家庭事件",
-    title: "孩子出生",
-    fact: "家庭照顧與支出責任增加。",
-    voice: "希望孩子未來有一筆可以用的錢。",
+    rocYear: 97,
+    age: 28,
+    lane: "就業就學史",
+    title: "工作型態轉為不定時",
+    fact: "收入來源改為臨時或不定時工作，薪資、工時與勞保狀態需再確認。",
+    voice: "哪邊有工作就去哪邊做。",
     source: "當事人口述",
     sensitivity: "內部",
     confidence: "中",
-    nextStep: "確認照顧分工與固定支出。"
+    impact: "現金流不穩，可能影響固定支出、租金與還款承諾。",
+    unknowns: "工作中斷是否與健康、照顧、交通或資格門檻有關。",
+    nextStep: "補收入區間、工作型態與就服/職訓資源。"
   },
   {
     id: "E003",
+    rocYear: 101,
+    age: 32,
+    lane: "感情家庭史",
+    title: "孩子出生與照顧分工改變",
+    fact: "家庭照顧與固定支出增加，伴侶、親屬或主要照顧者的支持程度影響金錢決策。",
+    voice: "希望孩子未來有一筆可以用的錢。",
+    source: "當事人口述 / 轉介單摘要",
+    sensitivity: "內部",
+    confidence: "中",
+    impact: "照顧時間、就業安排與儲蓄承諾互相拉扯。",
+    unknowns: "扶養費、照顧分工、親屬支持與前段關係責任。",
+    nextStep: "確認照顧分工與孩子相關固定支出。"
+  },
+  {
+    id: "E004",
+    rocYear: 105,
+    age: 36,
+    lane: "疾病身心史",
+    title: "就醫與照顧負荷增加",
+    fact: "家庭成員就醫或身心狀態影響工作時間、交通與支出安排，需只記錄工作必要資訊。",
+    voice: "那時候很多事情先顧身體和家裡。",
+    source: "當事人口述 / 醫療相關摘要",
+    sensitivity: "高度敏感",
+    confidence: "低",
+    impact: "可能造成收入減少、回覆延遲、付款中斷或資源申請困難。",
+    unknowns: "是否有正式診斷、長照需求、照顧者支持或醫療費用文件。",
+    nextStep: "標示醫療資料界線；必要時轉介醫療/心理/長照資源。"
+  },
+  {
+    id: "E005",
     rocYear: 109,
-    age: 50,
-    lane: "制度事件",
-    title: "福利身份或帳戶繳存異動",
+    age: 40,
+    lane: "社會資源使用歷程",
+    title: "福利身分或兒少帳戶繳存異動",
     fact: "低收/中低收資格、兒少教育發展帳戶或補助資格需重新確認。",
     voice: "不是不想存，是那陣子先處理眼前的錢。",
     source: "轉介單 / 公文摘要",
     sensitivity: "內部",
     confidence: "中",
+    impact: "短期現金流可能使長期資產形成承諾中斷。",
+    unknowns: "資格異動原因、繳存中斷期間、是否曾詢問承辦窗口。",
     nextStep: "與社工確認資格、文件與可調整方式。"
+  },
+  {
+    id: "E006",
+    rocYear: 110,
+    age: 41,
+    lane: "重大財務事件",
+    title: "信用卡或借貸付款中斷",
+    fact: "付款中斷或只繳最低應繳，需確認循環利息、催收、借貸來源與安全狀態。",
+    voice: "先撐過當月房租與孩子費用。",
+    source: "當事人口述 / 帳單摘要",
+    sensitivity: "高度敏感",
+    confidence: "低",
+    impact: "可能牽動居住、家庭照顧、正式協商與對銀行/制度信任。",
+    unknowns: "債權人、總額、利率、是否有代辦或地下借貸。",
+    nextStep: "補債務清冊；必要時轉官方協商或法扶。"
   }
 ];
 
 const sampleDecisions = [
   {
     id: "D001",
-    eventId: "E001",
+    eventId: "E006",
     question: "付款中斷後如何處理？",
     options: "繳最低、協商、求助、延後付款、暫停其他支出。",
     fear: "居住、照顧或工作安排中斷。",
@@ -95,6 +206,14 @@ const sampleDecisions = [
     options: "續繳、降額、暫停、詢問社工。",
     fear: "孩子未來資產累積中斷，但當月生活費已不足。",
     interpretation: "家庭可能認同長期儲蓄，但短期現金流使承諾中斷。"
+  },
+  {
+    id: "D003",
+    eventId: "E002",
+    question: "是否接受不定時工作以先補現金流？",
+    options: "接短工、找正式職缺、先處理照顧/就醫、連結就服或職訓。",
+    fear: "正式工作可能讓福利資格、照顧安排或身心狀態更不穩。",
+    interpretation: "工作選擇不是單純意願問題，需同步看資格門檻、照顧責任與健康可負荷程度。"
   }
 ];
 
@@ -102,6 +221,7 @@ let state = loadState();
 
 function defaultState() {
   return {
+    version: CURRENT_STATE_VERSION,
     events: structuredClone(sampleEvents),
     decisions: structuredClone(sampleDecisions),
     checks: safetyItems.map(([name]) => ({ name, status: "通過" })),
@@ -112,7 +232,7 @@ function defaultState() {
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem("caseTimelineToolState") || "null");
-    if (saved && Array.isArray(saved.events) && Array.isArray(saved.decisions)) return saved;
+    if (saved && saved.version === CURRENT_STATE_VERSION && Array.isArray(saved.events) && Array.isArray(saved.decisions)) return saved;
   } catch (_) {
     localStorage.removeItem("caseTimelineToolState");
   }
@@ -142,6 +262,8 @@ function render() {
   renderTimeline();
   renderLaneChart();
   renderEventsTable();
+  renderHistoryGuide();
+  renderContextIndex();
   renderDecisionCards();
   renderSafetyList();
   updateExportProbe();
@@ -150,7 +272,8 @@ function render() {
 function renderSummary() {
   $("#metricEvents").textContent = state.events.length;
   $("#metricDecisions").textContent = state.decisions.length;
-  $("#metricMoney").textContent = state.events.filter((e) => e.lane === "金錢事件").length;
+  $("#metricCovered").textContent = `${new Set(state.events.map((e) => e.lane).filter((lane) => lanes.includes(lane))).size}/${lanes.length}`;
+  $("#metricMoney").textContent = state.events.filter((e) => e.lane === "重大財務事件").length;
   $("#metricSensitive").textContent = state.events.filter((e) => ["高度敏感", "不可外部分享"].includes(e.sensitivity)).length;
   $("#metricPending").textContent = state.events.filter((e) => e.confidence === "低").length;
 }
@@ -177,12 +300,20 @@ function renderTimeline() {
 }
 
 function eventPill(event) {
-  const classes = ["event-pill"];
-  if (event.lane === "金錢事件") classes.push("money");
-  if (event.lane === "家庭事件") classes.push("family");
-  if (event.lane === "制度事件") classes.push("system");
+  const classes = ["event-pill", laneClass(event.lane)];
   if (["高度敏感", "不可外部分享"].includes(event.sensitivity)) classes.push("sensitive");
-  return `<span class="${classes.join(" ")}"><strong>${esc(event.title)}</strong><br><small>${esc(event.age || "")}歲 ${esc(event.sensitivity)}</small></span>`;
+  return `<span class="${classes.join(" ")}"><strong>${esc(event.title)}</strong><br><small>${esc(event.age || "")}歲 ${esc(event.sensitivity)} ${esc(event.confidence || "")}</small></span>`;
+}
+
+function laneClass(lane) {
+  return ({
+    "居住遷移史": "residence",
+    "就業就學史": "work",
+    "感情家庭史": "relationship",
+    "疾病身心史": "health",
+    "社會資源使用歷程": "resource",
+    "重大財務事件": "money"
+  })[lane] || "resource";
 }
 
 function renderLaneChart() {
@@ -205,11 +336,46 @@ function renderEventsTable() {
       <td>${esc(e.id)}</td>
       <td>${esc(e.rocYear)}</td>
       <td>${esc(e.lane)}</td>
-      <td><strong>${esc(e.title)}</strong><br><span>${esc(e.fact)}</span></td>
+      <td>
+        <div class="event-detail">
+          <strong>${esc(e.title)}</strong>
+          <span>${esc(e.fact)}</span>
+          <span><em>影響</em> ${esc(e.impact || "待補")}</span>
+          <span><em>待釐清</em> ${esc(e.unknowns || "待補")}</span>
+        </div>
+      </td>
       <td><span class="badge ${e.sensitivity === "高度敏感" || e.sensitivity === "不可外部分享" ? "red" : ""}">${esc(e.sensitivity)}</span></td>
       <td>${esc(e.nextStep || "")}</td>
       <td class="row-actions"><button type="button" data-delete-event="${esc(e.id)}">刪除</button></td>
     </tr>
+  `).join("");
+}
+
+function renderHistoryGuide() {
+  const target = $("#historyGuide");
+  if (!target) return;
+  target.innerHTML = historyGuides.map((item) => `
+    <article class="guide-card">
+      <h3>${esc(item.name)}</h3>
+      <p>${esc(item.focus)}</p>
+      <dl>
+        <dt>看什麼</dt><dd>${esc(item.lookFor)}</dd>
+        <dt>怎麼讀</dt><dd>${esc(item.decisionMeaning)}</dd>
+        <dt>界線</dt><dd>${esc(item.caution)}</dd>
+      </dl>
+    </article>
+  `).join("");
+}
+
+function renderContextIndex() {
+  const target = $("#contextIndex");
+  if (!target) return;
+  target.innerHTML = contextRows.map(([topic, period, use, source]) => `
+    <article class="context-row">
+      <h3>${esc(topic)}</h3>
+      <p><strong>${esc(period)}</strong> ${esc(use)}</p>
+      <a href="${esc(source)}" target="_blank" rel="noopener noreferrer">來源</a>
+    </article>
   `).join("");
 }
 
@@ -245,6 +411,10 @@ function updateExportProbe() {
   const blob = buildXlsx();
   probe.dataset.eventCount = String(state.events.length);
   probe.dataset.decisionCount = String(state.decisions.length);
+  probe.dataset.historyCoverage = String(new Set(state.events.map((e) => e.lane).filter((lane) => lanes.includes(lane))).size);
+  probe.dataset.sheetCount = String(workbookSheetNames.length);
+  probe.dataset.historyGuideCount = String(historyGuides.length);
+  probe.dataset.researchRows = String(researchRows.length);
   probe.dataset.xlsxSize = String(blob.size);
   probe.dataset.mimeType = blob.type;
 }
@@ -287,6 +457,8 @@ function bindEvents() {
       source: "使用者新增",
       sensitivity: data.sensitivity,
       confidence: data.confidence,
+      impact: data.impact,
+      unknowns: data.unknowns,
       nextStep: data.confidence === "低" ? "補來源與當事人確認" : "納入下一次討論"
     });
     render();
@@ -359,8 +531,8 @@ function buildXlsx() {
     {
       name: "事件時間軸",
       rows: [
-        ["ID", "民國年", "西元年", "年齡", "泳道", "事件標題", "事件事實", "當事人說法", "來源", "敏感度", "信心", "下一步"],
-        ...state.events.map((e) => [e.id, e.rocYear, Number(e.rocYear) + 1911, e.age, e.lane, e.title, e.fact, e.voice, e.source, e.sensitivity, e.confidence, e.nextStep])
+        ["ID", "民國年", "西元年", "年齡", "歷程面向", "事件標題", "事件事實", "當事人說法", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
+        ...state.events.map((e) => [e.id, e.rocYear, Number(e.rocYear) + 1911, e.age, e.lane, e.title, e.fact, e.voice, e.impact || "", e.unknowns || "", e.source, e.sensitivity, e.confidence, e.nextStep])
       ]
     },
     {
@@ -371,8 +543,19 @@ function buildXlsx() {
       ]
     },
     {
+      name: "六大歷程解讀",
+      rows: [
+        ["歷程", "整理重點", "觀察線索", "決策解讀", "資料界線"],
+        ...historyGuides.map((item) => [item.name, item.focus, item.lookFor, item.decisionMeaning, item.caution])
+      ]
+    },
+    {
       name: "台灣制度背景",
       rows: [["主題", "時間/制度", "用途", "來源"], ...contextRows]
+    },
+    {
+      name: "研究依據摘要",
+      rows: [["來源類型", "研究觀察", "工具設計回應"], ...researchRows]
     },
     {
       name: "分享前檢查",
@@ -581,6 +764,11 @@ window.caseTimelineTool = {
     return {
       eventCount: state.events.length,
       decisionCount: state.decisions.length,
+      historyCoverage: new Set(state.events.map((e) => e.lane).filter((lane) => lanes.includes(lane))).size,
+      sheetCount: workbookSheetNames.length,
+      historyGuideCount: historyGuides.length,
+      researchRows: researchRows.length,
+      workbookSheetNames,
       xlsxSize: blob.size,
       mimeType: blob.type
     };

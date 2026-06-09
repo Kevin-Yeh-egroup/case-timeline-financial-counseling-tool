@@ -21,6 +21,8 @@
 - [x] Decision node form adds a card.
 - [x] Excel export probe produces `.xlsx` MIME and non-empty Blob.
 - [x] Mobile width remains usable.
+- [x] Six-history guide renders on the context tab.
+- [x] Excel export includes event impact, unknowns, six-history guide, and research summary sheets.
 - [x] Production URL returns `200 OK`.
 - [x] Production URL has `X-Robots-Tag`.
 - [x] Production `robots.txt` returns expected content.
