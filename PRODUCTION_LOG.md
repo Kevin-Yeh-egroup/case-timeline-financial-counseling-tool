@@ -73,3 +73,22 @@
   - console errors: none observed
 
 Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://case-timeline-financial-counseling.vercel.app --scope egroup-task3s-projects` to confirm the current deployment behind the stable alias.
+
+## v0.3 AI Import Drafts
+
+- Date: 2026-06-09
+- Update summary:
+  - Added an AI import workspace for text, file upload, and browser voice input.
+  - Added a social-worker review queue: imported material becomes editable drafts first, then requires confirmation before entering the life timeline or decision cards.
+  - Added optional Vercel API routes for DOCX/XLSX/PDF text extraction and OpenAI structured analysis.
+  - Kept browser-local fallback rules when `OPENAI_API_KEY` is not configured.
+  - Added Excel export support for a `待確認草稿` sheet.
+- Verification status: pending final production deployment and browser check.
+- Local predeployment verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - API mock without `OPENAI_API_KEY`: `/api/analyze` returned `local-fallback` with `Cache-Control: no-store`.
+  - API mock text extraction: `/api/extract-file` returned plain text.
+  - Minimal DOCX/XLSX ZIP extraction test: DOCX and XLSX text extraction passed.
+  - Browser desktop flow: text input generated `3` drafts; confirming the first draft changed events from `6` to `7` and drafts from `3` to `2`.
+  - Export probe after confirmation: sheet count `8`, draft count `2`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
+  - Browser mobile width `390px`: no whole-page horizontal overflow; AI tab remained usable.

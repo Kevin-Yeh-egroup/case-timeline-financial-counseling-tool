@@ -43,6 +43,7 @@
 
       <nav class="tabs" aria-label="工作區切換">
         <button class="tab active" data-tab="timeline" type="button">時間軸</button>
+        <button class="tab" data-tab="ai" type="button">AI 匯入</button>
         <button class="tab" data-tab="events" type="button">事件資料</button>
         <button class="tab" data-tab="context" type="button">歷程解讀</button>
         <button class="tab" data-tab="decisions" type="button">決策節點</button>
@@ -71,6 +72,35 @@
               <h2>歷程分布</h2>
             </div>
             <div id="laneChart" class="bar-chart" aria-label="事件類型統計"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="workspace" id="tab-ai">
+        <div class="data-layout">
+          <form class="panel form-panel" id="aiInputForm">
+            <div class="section-head">
+              <h2>AI 匯入資料</h2>
+            </div>
+            <label>文字輸入<textarea name="intakeText" rows="6" placeholder="貼上會談摘要、轉介單摘要、社工紀錄節錄或財務諮詢筆記。"></textarea></label>
+            <label>上傳檔案
+              <input id="fileInput" type="file" multiple accept=".txt,.csv,.md,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
+            </label>
+            <div id="fileStatus" class="field-note">可選擇 DOCX、XLSX、PDF、文字或 CSV；production 會先抽取可讀文字，草稿仍需人工確認。</div>
+            <div class="button-row" aria-label="語音輸入操作">
+              <button class="ghost" id="startVoice" type="button">開始語音</button>
+              <button class="ghost" id="stopVoice" type="button">停止</button>
+            </div>
+            <label>待分析文字<textarea id="aiCombinedText" rows="7" placeholder="語音轉文字與檔案抽取內容會累積在這裡；送出前可先刪除不該分析的個資。"></textarea></label>
+            <div id="aiStatus" class="field-note">送出後只會產生待確認草稿，不會直接寫入時間軸。</div>
+            <button class="primary" type="submit">分析成待確認草稿</button>
+          </form>
+          <section class="panel cards-panel">
+            <div class="section-head">
+              <h2>待確認草稿</h2>
+              <button class="ghost" id="clearDrafts" type="button">清除草稿</button>
+            </div>
+            <div id="draftList" class="draft-list"></div>
           </section>
         </div>
       </section>

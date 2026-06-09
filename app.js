@@ -67,7 +67,7 @@ const researchRows = [
   ["個資法與倫理界線", "歷程資料含婚姻、家庭、教育、職業、醫療、健康、財務與社會活動。", "分享前檢查保留高敏感、最小必要與外部摘要檢核。"]
 ];
 
-const workbookSheetNames = ["事件時間軸", "決策節點卡", "六大歷程解讀", "台灣制度背景", "研究依據摘要", "分享前檢查", "非責備語言"];
+const workbookSheetNames = ["事件時間軸", "決策節點卡", "待確認草稿", "六大歷程解讀", "台灣制度背景", "研究依據摘要", "分享前檢查", "非責備語言"];
 
 const languageRows = [
   ["亂花錢", "支出可能承載急迫需求、關係義務或情緒調節，需確認用途與情境。"],
@@ -224,6 +224,7 @@ function defaultState() {
     version: CURRENT_STATE_VERSION,
     events: structuredClone(sampleEvents),
     decisions: structuredClone(sampleDecisions),
+    drafts: [],
     checks: safetyItems.map(([name]) => ({ name, status: "通過" })),
     yearMode: "roc"
   };
@@ -232,7 +233,10 @@ function defaultState() {
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem("caseTimelineToolState") || "null");
-    if (saved && saved.version === CURRENT_STATE_VERSION && Array.isArray(saved.events) && Array.isArray(saved.decisions)) return saved;
+    if (saved && saved.version === CURRENT_STATE_VERSION && Array.isArray(saved.events) && Array.isArray(saved.decisions)) {
+      saved.drafts = Array.isArray(saved.drafts) ? saved.drafts : [];
+      return saved;
+    }
   } catch (_) {
     localStorage.removeItem("caseTimelineToolState");
   }
@@ -262,6 +266,7 @@ function render() {
   renderTimeline();
   renderLaneChart();
   renderEventsTable();
+  renderDraftList();
   renderHistoryGuide();
   renderContextIndex();
   renderDecisionCards();
@@ -351,6 +356,104 @@ function renderEventsTable() {
   `).join("");
 }
 
+function renderDraftList() {
+  const target = $("#draftList");
+  if (!target) return;
+  if (!state.drafts.length) {
+    target.innerHTML = `<div class="field-note">尚無待確認草稿。貼上文字、上傳檔案或語音輸入後，按「分析成待確認草稿」。</div>`;
+    return;
+  }
+  target.innerHTML = state.drafts.map((draft, index) => draft.type === "decision" ? decisionDraftCard(draft, index) : eventDraftCard(draft, index)).join("");
+}
+
+function eventDraftCard(draft, index) {
+  const laneOptions = lanes.map((lane) => `<option ${lane === draft.lane ? "selected" : ""}>${esc(lane)}</option>`).join("");
+  const sensitivity = ["一般", "內部", "高度敏感", "不可外部分享"].map((value) => `<option ${value === draft.sensitivity ? "selected" : ""}>${value}</option>`).join("");
+  const confidence = ["低", "中", "高"].map((value) => `<option ${value === draft.confidence ? "selected" : ""}>${value}</option>`).join("");
+  return `
+    <article class="draft-card" data-draft-card="${index}">
+      <h3>事件草稿 ${esc(draft.title || "未命名")}</h3>
+      <div class="draft-grid">
+        <label>民國年<input data-draft-field="rocYear" value="${esc(draft.rocYear || "")}" /></label>
+        <label>案主年齡<input data-draft-field="age" value="${esc(draft.age || "")}" /></label>
+        <label>歷程面向<select data-draft-field="lane">${laneOptions}</select></label>
+        <label>敏感度<select data-draft-field="sensitivity">${sensitivity}</select></label>
+        <label>信心<select data-draft-field="confidence">${confidence}</select></label>
+        <label class="full">事件標題<input data-draft-field="title" value="${esc(draft.title || "")}" /></label>
+        <label class="full">事件事實<textarea data-draft-field="fact" rows="3">${esc(draft.fact || "")}</textarea></label>
+        <label class="full">當事人說法<textarea data-draft-field="voice" rows="2">${esc(draft.voice || "")}</textarea></label>
+        <label class="full">脈絡影響<textarea data-draft-field="impact" rows="2">${esc(draft.impact || "")}</textarea></label>
+        <label class="full">待釐清<textarea data-draft-field="unknowns" rows="2">${esc(draft.unknowns || "")}</textarea></label>
+      </div>
+      <div class="draft-actions">
+        <button type="button" data-confirm-draft="${index}">確認加入時間軸</button>
+        <button type="button" data-discard-draft="${index}">略過</button>
+      </div>
+    </article>`;
+}
+
+function decisionDraftCard(draft, index) {
+  return `
+    <article class="draft-card" data-draft-card="${index}">
+      <h3>決策草稿 ${esc(draft.question || "未命名")}</h3>
+      <div class="draft-grid">
+        <label>連結事件 ID<input data-draft-field="eventId" value="${esc(draft.eventId || "")}" /></label>
+        <label>信心<input data-draft-field="confidence" value="${esc(draft.confidence || "低")}" /></label>
+        <label class="full">決策問題<input data-draft-field="question" value="${esc(draft.question || "")}" /></label>
+        <label class="full">可選選項<textarea data-draft-field="options" rows="2">${esc(draft.options || "")}</textarea></label>
+        <label class="full">最大擔心<textarea data-draft-field="fear" rows="2">${esc(draft.fear || "")}</textarea></label>
+        <label class="full">脈絡化解讀<textarea data-draft-field="interpretation" rows="3">${esc(draft.interpretation || "")}</textarea></label>
+      </div>
+      <div class="draft-actions">
+        <button type="button" data-confirm-draft="${index}">確認加入決策卡</button>
+        <button type="button" data-discard-draft="${index}">略過</button>
+      </div>
+    </article>`;
+}
+
+function updateDraftFromField(target) {
+  const card = target.closest("[data-draft-card]");
+  if (!card) return;
+  const index = Number(card.dataset.draftCard);
+  const field = target.dataset.draftField;
+  if (!Number.isInteger(index) || !field || !state.drafts[index]) return;
+  state.drafts[index][field] = target.value;
+  saveState();
+}
+
+function confirmDraft(index) {
+  const draft = state.drafts[index];
+  if (!draft) return;
+  if (draft.type === "decision") {
+    state.decisions.push({
+      id: nextId("D", state.decisions),
+      eventId: draft.eventId || "",
+      question: draft.question || "待補決策問題",
+      options: draft.options || "待補可選選項",
+      fear: draft.fear || "待補最大擔心",
+      interpretation: draft.interpretation || "待補脈絡化解讀"
+    });
+  } else {
+    state.events.push({
+      id: nextId("E", state.events),
+      rocYear: Number(draft.rocYear || 0),
+      age: Number(draft.age || 0),
+      lane: lanes.includes(draft.lane) ? draft.lane : "重大財務事件",
+      title: draft.title || "待補事件標題",
+      fact: draft.fact || "待補事件事實",
+      voice: draft.voice || "",
+      source: draft.source || "AI 匯入草稿",
+      sensitivity: draft.sensitivity || "內部",
+      confidence: draft.confidence || "低",
+      impact: draft.impact || "待補脈絡影響",
+      unknowns: draft.unknowns || "待補待釐清",
+      nextStep: draft.nextStep || "社工已確認草稿後加入；下次會談補證據。"
+    });
+  }
+  state.drafts.splice(index, 1);
+  render();
+}
+
 function renderHistoryGuide() {
   const target = $("#historyGuide");
   if (!target) return;
@@ -411,6 +514,7 @@ function updateExportProbe() {
   const blob = buildXlsx();
   probe.dataset.eventCount = String(state.events.length);
   probe.dataset.decisionCount = String(state.decisions.length);
+  probe.dataset.draftCount = String(state.drafts.length);
   probe.dataset.historyCoverage = String(new Set(state.events.map((e) => e.lane).filter((lane) => lanes.includes(lane))).size);
   probe.dataset.sheetCount = String(workbookSheetNames.length);
   probe.dataset.historyGuideCount = String(historyGuides.length);
@@ -495,6 +599,45 @@ function bindEvents() {
     }
   });
 
+  $("#aiInputForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formText = new FormData(event.currentTarget).get("intakeText") || "";
+    const combined = $("#aiCombinedText").value || "";
+    const text = [formText, combined].map((part) => String(part).trim()).filter(Boolean).join("\n\n");
+    await analyzeIntakeText(text);
+  });
+
+  $("#fileInput").addEventListener("change", async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    $("#fileStatus").textContent = `讀取 ${files.length} 個檔案中...`;
+    const results = [];
+    for (const file of files) results.push(await extractFileText(file));
+    const usableText = results.map((item) => item.text).filter(Boolean).join("\n\n");
+    $("#aiCombinedText").value = [$("#aiCombinedText").value, usableText].map((part) => part.trim()).filter(Boolean).join("\n\n");
+    $("#fileStatus").textContent = results.map((item) => `${item.name}: ${item.note}`).join("；");
+  });
+
+  $("#startVoice").addEventListener("click", startVoiceInput);
+  $("#stopVoice").addEventListener("click", stopVoiceInput);
+
+  $("#clearDrafts").addEventListener("click", () => {
+    state.drafts = [];
+    render();
+  });
+
+  $("#draftList").addEventListener("input", (event) => updateDraftFromField(event.target));
+  $("#draftList").addEventListener("change", (event) => updateDraftFromField(event.target));
+  $("#draftList").addEventListener("click", (event) => {
+    const confirmIndex = event.target?.dataset?.confirmDraft;
+    const discardIndex = event.target?.dataset?.discardDraft;
+    if (confirmIndex !== undefined) confirmDraft(Number(confirmIndex));
+    if (discardIndex !== undefined) {
+      state.drafts.splice(Number(discardIndex), 1);
+      render();
+    }
+  });
+
   $("#resetSample").addEventListener("click", () => {
     state = defaultState();
     render();
@@ -526,6 +669,255 @@ function bindEvents() {
   });
 }
 
+async function analyzeIntakeText(text) {
+  const cleanText = String(text || "").trim();
+  if (cleanText.length < 6) {
+    setAiStatus("請先輸入或匯入足夠文字。");
+    return;
+  }
+  setAiStatus("分析中；完成後會先放入待確認草稿。");
+  let analysis = null;
+  try {
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: cleanText, locale: "zh-Hant-TW", lanes })
+    });
+    if (response.ok) analysis = await response.json();
+  } catch (_) {
+    analysis = null;
+  }
+  const drafts = normalizeAnalysisDrafts(analysis, cleanText);
+  state.drafts = [...drafts, ...state.drafts].slice(0, 20);
+  render();
+  const mode = analysis?.mode === "openai" ? "AI 分析" : "本機語意規則";
+  setAiStatus(`${mode}完成：產生 ${drafts.length} 筆待確認草稿。請社工逐筆確認後再加入時間軸。`);
+}
+
+function normalizeAnalysisDrafts(analysis, fallbackText) {
+  const apiDrafts = [
+    ...(Array.isArray(analysis?.events) ? analysis.events.map((item) => normalizeEventDraft(item)) : []),
+    ...(Array.isArray(analysis?.decisions) ? analysis.decisions.map((item) => normalizeDecisionDraft(item)) : [])
+  ].filter(Boolean);
+  if (analysis?.mode === "openai" && apiDrafts.length) return apiDrafts;
+  return localSemanticDrafts(fallbackText);
+}
+
+function normalizeEventDraft(item) {
+  if (!item) return null;
+  const lane = lanes.includes(item.lane) ? item.lane : detectLane([item.title, item.fact, item.voice].join(" "));
+  return {
+    type: "event",
+    rocYear: item.rocYear || "",
+    age: item.age || "",
+    lane,
+    title: item.title || "待確認事件",
+    fact: item.fact || "",
+    voice: item.voice || "",
+    impact: item.impact || guideForLane(lane).decisionMeaning,
+    unknowns: item.unknowns || guideForLane(lane).lookFor,
+    sensitivity: item.sensitivity || defaultSensitivity(lane),
+    confidence: item.confidence || "低",
+    source: "AI 匯入草稿",
+    nextStep: "社工確認後加入；必要時補來源與佐證。"
+  };
+}
+
+function normalizeDecisionDraft(item) {
+  if (!item) return null;
+  return {
+    type: "decision",
+    eventId: item.eventId || "",
+    question: item.question || "待確認決策問題",
+    options: item.options || "待補可選選項",
+    fear: item.fear || "待補最大擔心",
+    interpretation: item.interpretation || "待補脈絡化解讀",
+    confidence: item.confidence || "低"
+  };
+}
+
+function localSemanticDrafts(text) {
+  const sentences = String(text)
+    .replace(/\s+/g, " ")
+    .split(/(?<=[。！？!?])|\n|；|;/)
+    .map((item) => item.trim())
+    .filter((item) => item.length >= 8);
+  const selected = sentences.length ? sentences.slice(0, 6) : [String(text).slice(0, 140)];
+  const eventDrafts = selected.map((sentence) => {
+    const lane = detectLane(sentence);
+    const guide = guideForLane(lane);
+    return {
+      type: "event",
+      rocYear: extractRocYear(sentence),
+      age: extractAge(sentence),
+      lane,
+      title: titleFromSentence(sentence, lane),
+      fact: sentence,
+      voice: extractVoice(sentence),
+      impact: guide.decisionMeaning,
+      unknowns: guide.lookFor,
+      sensitivity: defaultSensitivity(lane),
+      confidence: extractRocYear(sentence) ? "中" : "低",
+      source: "本機語意草稿",
+      nextStep: "社工確認後加入；必要時補來源與佐證。"
+    };
+  });
+  const decisionDrafts = /選擇|決定|是否|要不要|協商|搬|工作|繳|還款|借|轉介|申請/.test(text)
+    ? [{
+        type: "decision",
+        eventId: "",
+        question: "目前資料中需要釐清的關鍵決策是什麼？",
+        options: "維持現況、補文件、連結資源、暫緩、轉介專業、調整支出或還款安排。",
+        fear: "可能擔心居住、照顧、工作、福利資格或催收風險被影響。",
+        interpretation: "此草稿由本機規則產生；請社工依會談資料確認當時資訊、可行選項與壓力來源。",
+        confidence: "低"
+      }]
+    : [];
+  return [...eventDrafts, ...decisionDrafts];
+}
+
+function detectLane(text) {
+  const value = String(text || "");
+  const rules = [
+    ["重大財務事件", /卡債|信用卡|債|借|貸款|錢莊|欠|利息|協商|還款|帳戶|存款|保險|財務|金錢|繳/],
+    ["社會資源使用歷程", /低收|中低收|急難|補助|社工|政府|方案|轉介|法扶|網絡|服務|資格|文件|兒少教育發展帳戶/],
+    ["疾病身心史", /疾病|生病|就醫|醫院|精神|憂鬱|焦慮|健康|長照|照顧者|失能|醫療/],
+    ["感情家庭史", /感情|交往|婚|離婚|伴侶|先生|太太|孩子|小孩|扶養|家暴|親職|家庭/],
+    ["就業就學史", /工作|就業|就學|學校|學歷|職訓|薪水|收入|失業|工時|留停/],
+    ["居住遷移史", /居住|租屋|搬家|搬|遷|住宿|戶籍|房租|安置|中途之家|住所/]
+  ];
+  return rules.find(([, pattern]) => pattern.test(value))?.[0] || "重大財務事件";
+}
+
+function guideForLane(lane) {
+  return historyGuides.find((item) => item.name === lane) || historyGuides[historyGuides.length - 1];
+}
+
+function defaultSensitivity(lane) {
+  if (lane === "疾病身心史" || lane === "重大財務事件") return "高度敏感";
+  if (lane === "感情家庭史" || lane === "社會資源使用歷程") return "內部";
+  return "一般";
+}
+
+function extractRocYear(text) {
+  const value = String(text || "");
+  const roc = value.match(/民國\s*(\d{2,3})\s*年?/);
+  if (roc) return Number(roc[1]);
+  const ad = value.match(/(19|20)\d{2}\s*年/);
+  if (ad) return Number(ad[0].replace(/\D/g, "")) - 1911;
+  const shortYear = value.match(/(^|[^\d])(\d{2,3})\s*年/);
+  if (shortYear) return Number(shortYear[2]);
+  return "";
+}
+
+function extractAge(text) {
+  const match = String(text || "").match(/(\d{1,3})\s*歲/);
+  return match ? Number(match[1]) : "";
+}
+
+function extractVoice(text) {
+  const match = String(text || "").match(/[「『\"]([^」』\"]{3,80})[」』\"]/);
+  return match ? match[1] : "";
+}
+
+function titleFromSentence(sentence, lane) {
+  const cleaned = String(sentence || "").replace(/[，。！？、；:：]/g, " ").replace(/\s+/g, " ").trim();
+  const title = cleaned.slice(0, 18);
+  return title ? `${lane}：${title}` : `${lane}草稿`;
+}
+
+function setAiStatus(message) {
+  const target = $("#aiStatus");
+  if (target) target.textContent = message;
+}
+
+async function extractFileText(file) {
+  const name = file.name || "未命名檔案";
+  const ext = name.toLowerCase().split(".").pop() || "";
+  if (["txt", "csv", "md"].includes(ext) || file.type.startsWith("text/")) {
+    return { name, text: await file.text(), note: "已讀取文字內容" };
+  }
+  if (["pdf", "docx", "xlsx"].includes(ext)) {
+    try {
+      return await extractFileTextViaApi(file);
+    } catch (_) {
+      // Local static previews do not expose Vercel API routes; fall back to manual summary guidance.
+    }
+  }
+  if (ext === "pdf") {
+    const raw = await file.text();
+    const extracted = raw.replace(/[^\u4e00-\u9fff\u3000-\u303f\uff00-\uffefa-zA-Z0-9，。！？；、：\s]/g, " ").replace(/\s+/g, " ").trim();
+    if (extracted.length > 80) return { name, text: `檔案：${name}\n${extracted.slice(0, 8000)}`, note: "已做 PDF 粗略文字抽取" };
+    return { name, text: `檔案：${name}\nPDF 已上傳，但目前無法可靠抽取文字；掃描影像 PDF 請先 OCR 或貼上摘要。`, note: "PDF 需文字層或 OCR" };
+  }
+  if (["doc", "docx", "xls", "xlsx"].includes(ext)) {
+    return { name, text: `檔案：${name}\nWord/Excel 已選取；DOCX/XLSX 可在 production 由後端抽取，舊版 DOC/XLS 請轉存或貼上摘要文字。`, note: "Word/Excel 需可讀格式" };
+  }
+  return { name, text: `檔案：${name}\n檔案類型尚未支援自動抽取，請貼上摘要文字。`, note: "類型未支援" };
+}
+
+async function extractFileTextViaApi(file) {
+  const base64 = await fileToBase64(file);
+  const response = await fetch("/api/extract-file", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: file.name,
+      mimeType: file.type,
+      base64
+    })
+  });
+  if (!response.ok) throw new Error("file extract api unavailable");
+  const result = await response.json();
+  return {
+    name: result.name || file.name,
+    text: `檔案：${result.name || file.name}\n${result.text || ""}`,
+    note: result.note || "已抽取檔案文字"
+  };
+}
+
+async function fileToBase64(file) {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+let voiceRecognition = null;
+
+function startVoiceInput() {
+  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!Recognition) {
+    setAiStatus("此瀏覽器不支援內建語音辨識；可以先用文字貼上。");
+    return;
+  }
+  voiceRecognition = new Recognition();
+  voiceRecognition.lang = "zh-TW";
+  voiceRecognition.continuous = true;
+  voiceRecognition.interimResults = true;
+  voiceRecognition.onresult = (event) => {
+    let finalText = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) finalText += event.results[i][0].transcript;
+    }
+    if (finalText) {
+      $("#aiCombinedText").value = [$("#aiCombinedText").value, finalText].map((part) => part.trim()).filter(Boolean).join("\n");
+    }
+  };
+  voiceRecognition.onerror = () => setAiStatus("語音辨識中斷；可改用文字輸入。");
+  voiceRecognition.onstart = () => setAiStatus("語音輸入中；請用假資料測試，真實個資需在機構規範內使用。");
+  voiceRecognition.onend = () => setAiStatus("語音輸入已停止。");
+  voiceRecognition.start();
+}
+
+function stopVoiceInput() {
+  if (voiceRecognition) voiceRecognition.stop();
+}
+
 function buildXlsx() {
   const sheets = [
     {
@@ -540,6 +932,15 @@ function buildXlsx() {
       rows: [
         ["ID", "連結事件", "決策問題", "可選選項", "最大擔心", "脈絡化解讀"],
         ...state.decisions.map((d) => [d.id, d.eventId, d.question, d.options, d.fear, d.interpretation])
+      ]
+    },
+    {
+      name: "待確認草稿",
+      rows: [
+        ["類型", "歷程/連結事件", "標題/問題", "事實/選項", "當事人說法/最大擔心", "脈絡影響", "待釐清/解讀", "信心"],
+        ...state.drafts.map((draft) => draft.type === "event"
+          ? ["事件", draft.lane, draft.title, draft.fact, draft.voice, draft.impact, draft.unknowns, draft.confidence]
+          : ["決策", draft.eventId, draft.question, draft.options, draft.fear, "", draft.interpretation, draft.confidence || "低"])
       ]
     },
     {
@@ -764,6 +1165,7 @@ window.caseTimelineTool = {
     return {
       eventCount: state.events.length,
       decisionCount: state.decisions.length,
+      draftCount: state.drafts.length,
       historyCoverage: new Set(state.events.map((e) => e.lane).filter((lane) => lanes.includes(lane))).size,
       sheetCount: workbookSheetNames.length,
       historyGuideCount: historyGuides.length,

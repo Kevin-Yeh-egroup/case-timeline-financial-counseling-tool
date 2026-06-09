@@ -256,6 +256,18 @@ textarea {
   resize: vertical;
 }
 
+.field-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .form-panel {
   display: grid;
   gap: 10px;
@@ -505,12 +517,14 @@ tbody tr:nth-child(even) {
 }
 
 .decision-list,
+.draft-list,
 .check-list {
   display: grid;
   gap: 10px;
 }
 
 .decision-card,
+.draft-card,
 .check-item {
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -521,6 +535,47 @@ tbody tr:nth-child(even) {
 .decision-card h3 {
   margin: 0 0 6px;
   font-size: 16px;
+}
+
+.draft-card {
+  display: grid;
+  gap: 9px;
+}
+
+.draft-card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.draft-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.draft-grid label.full {
+  grid-column: 1 / -1;
+}
+
+.draft-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.draft-actions button {
+  min-height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  font-weight: 800;
+}
+
+.draft-actions button[data-confirm-draft] {
+  border-color: transparent;
+  background: var(--teal);
+  color: #fff;
 }
 
 .decision-card dl {
@@ -574,6 +629,10 @@ tbody tr:nth-child(even) {
   }
 
   .guide-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .draft-grid {
     grid-template-columns: 1fr;
   }
 }
