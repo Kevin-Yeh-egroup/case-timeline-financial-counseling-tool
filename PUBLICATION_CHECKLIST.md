@@ -21,6 +21,17 @@
 - [x] Decision node form adds a card.
 - [x] Excel export probe produces `.xlsx` MIME and non-empty Blob.
 - [x] Mobile width remains usable.
-- [ ] Production URL returns `200 OK`.
-- [ ] Production URL has `X-Robots-Tag`.
-- [ ] Production `robots.txt` returns expected content.
+- [x] Production URL returns `200 OK`.
+- [x] Production URL has `X-Robots-Tag`.
+- [x] Production `robots.txt` returns expected content.
+- [x] Production browser check renders timeline and decision cards.
+- [x] Production Excel export probe produces `.xlsx` MIME and non-empty Blob.
+
+## Production
+
+- GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
+- Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
+- Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
+- Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
+- Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`
+- Production target: `Ready`
