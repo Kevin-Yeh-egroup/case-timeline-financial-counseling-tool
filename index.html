@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <meta name="description" content="台灣社工與馴錢師使用的個案時間軸視覺化工具。" />
+    <title>個案時間軸整理工具</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">馴錢師 / 社工協作</p>
+          <h1>個案時間軸整理工具</h1>
+        </div>
+        <div class="top-actions" aria-label="主要操作">
+          <button class="icon-button" id="downloadExcel" type="button" title="下載 Excel">
+            <span aria-hidden="true">↓</span>
+            下載 Excel
+          </button>
+          <button class="icon-button quiet" id="resetSample" type="button" title="重設範例">
+            <span aria-hidden="true">↺</span>
+            重設
+          </button>
+        </div>
+      </header>
+
+      <section class="notice-band" aria-label="公開版資料邊界">
+        <strong>公開版僅使用假資料。</strong>
+        <span>所有輸入保存在本機瀏覽器；下載 Excel 時不會上傳個案資料。金融、法律、保護案件與正式社工評估需由相應專業確認。</span>
+      </section>
+
+      <section class="summary-grid" aria-label="摘要指標">
+        <div class="metric"><span>事件</span><strong id="metricEvents">0</strong></div>
+        <div class="metric"><span>決策節點</span><strong id="metricDecisions">0</strong></div>
+        <div class="metric amber"><span>金錢事件</span><strong id="metricMoney">0</strong></div>
+        <div class="metric red"><span>高度敏感</span><strong id="metricSensitive">0</strong></div>
+        <div class="metric blue"><span>待確認</span><strong id="metricPending">0</strong></div>
+      </section>
+
+      <nav class="tabs" aria-label="工作區切換">
+        <button class="tab active" data-tab="timeline" type="button">時間軸</button>
+        <button class="tab" data-tab="events" type="button">事件資料</button>
+        <button class="tab" data-tab="decisions" type="button">決策節點</button>
+        <button class="tab" data-tab="safety" type="button">分享檢查</button>
+      </nav>
+
+      <section class="workspace active" id="tab-timeline">
+        <div class="timeline-layout">
+          <section class="panel wide">
+            <div class="section-head">
+              <h2>視覺時間軸</h2>
+              <label>
+                顯示年份
+                <select id="yearMode">
+                  <option value="roc">民國</option>
+                  <option value="ad">西元</option>
+                </select>
+              </label>
+            </div>
+            <div class="timeline-scroll">
+              <div id="timelineChart" class="timeline-chart" role="img" aria-label="事件時間軸圖表"></div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="section-head">
+              <h2>事件類型</h2>
+            </div>
+            <div id="laneChart" class="bar-chart" aria-label="事件類型統計"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="workspace" id="tab-events">
+        <div class="data-layout">
+          <form class="panel form-panel" id="eventForm">
+            <div class="section-head">
+              <h2>新增事件</h2>
+            </div>
+            <label>民國年<input name="rocYear" type="number" min="1" max="150" required value="108" /></label>
+            <label>案主年齡<input name="age" type="number" min="0" max="120" value="30" /></label>
+            <label>泳道
+              <select name="lane" required>
+                <option>個人事件</option>
+                <option>家庭事件</option>
+                <option selected>金錢事件</option>
+                <option>制度事件</option>
+                <option>時代背景</option>
+                <option>服務介入</option>
+              </select>
+            </label>
+            <label>事件標題<input name="title" required value="付款中斷" /></label>
+            <label>事件事實<textarea name="fact" rows="3">信用卡或帳單付款中斷，需確認債務類型、催收狀態與安全風險。</textarea></label>
+            <label>當事人說法<textarea name="voice" rows="2">先撐過房租、孩子費用或生活必要支出。</textarea></label>
+            <label>敏感度
+              <select name="sensitivity">
+                <option>一般</option>
+                <option>內部</option>
+                <option selected>高度敏感</option>
+                <option>不可外部分享</option>
+              </select>
+            </label>
+            <label>信心
+              <select name="confidence">
+                <option>低</option>
+                <option selected>中</option>
+                <option>高</option>
+              </select>
+            </label>
+            <button class="primary" type="submit">新增到時間軸</button>
+          </form>
+          <section class="panel table-panel">
+            <div class="section-head">
+              <h2>事件列表</h2>
+              <button class="ghost" id="clearEvents" type="button">清除全部</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>民國年</th>
+                    <th>泳道</th>
+                    <th>事件</th>
+                    <th>敏感度</th>
+                    <th>下一步</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="eventsTable"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="workspace" id="tab-decisions">
+        <div class="data-layout">
+          <form class="panel form-panel" id="decisionForm">
+            <div class="section-head">
+              <h2>新增決策節點</h2>
+            </div>
+            <label>連結事件 ID<input name="eventId" value="E001" /></label>
+            <label>決策問題<input name="question" required value="付款中斷後如何處理？" /></label>
+            <label>當時可選選項<textarea name="options" rows="2">繳最低、協商、求助、延後付款、暫停其他支出。</textarea></label>
+            <label>最大擔心<textarea name="fear" rows="2">居住、照顧或工作安排中斷。</textarea></label>
+            <label>脈絡化解讀<textarea name="interpretation" rows="3">在短期安全與長期債務成本間取捨，需確認當時資訊與可行選項。</textarea></label>
+            <button class="primary" type="submit">新增決策卡</button>
+          </form>
+          <section class="panel cards-panel">
+            <div class="section-head">
+              <h2>決策節點卡</h2>
+            </div>
+            <div id="decisionCards" class="decision-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="workspace" id="tab-safety">
+        <div class="panel">
+          <div class="section-head">
+            <h2>分享前檢查</h2>
+            <button class="ghost" id="resetChecks" type="button">全部重置</button>
+          </div>
+          <div id="safetyList" class="check-list"></div>
+        </div>
+      </section>
+      <div id="exportProbe" hidden aria-hidden="true"></div>
+    </main>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
