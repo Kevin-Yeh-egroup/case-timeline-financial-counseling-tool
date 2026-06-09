@@ -1,5 +1,11 @@
-const CURRENT_STATE_VERSION = "v0.2-six-history";
-const lanes = ["居住遷移史", "就業就學史", "感情家庭史", "疾病身心史", "社會資源使用歷程", "重大財務事件"];
+const CURRENT_STATE_VERSION = "v0.4-taiwan-wording";
+const lanes = ["居住遷移史", "就業與就學史", "感情與家庭史", "疾病與身心健康史", "社會資源使用歷程", "重大財務事件"];
+const laneAliases = {
+  "就業就學史": "就業與就學史",
+  "感情家庭史": "感情與家庭史",
+  "疾病身心史": "疾病與身心健康史",
+  "疾病健康史": "疾病與身心健康史"
+};
 const sensitivityOptions = ["通過", "需遮罩", "需同意", "不得分享", "需督導確認"];
 
 const historyGuides = [
@@ -11,21 +17,21 @@ const historyGuides = [
     caution: "地址、庇護/安置地點、保護案件資訊不得外部分享。"
   },
   {
-    name: "就業就學史",
+    name: "就業與就學史",
     focus: "學歷、職訓、工作型態、收入穩定度、工時、照顧責任與資格門檻如何互相影響。",
     lookFor: "非典型工作、失業、留停、照顧中斷、就學轉換、職訓、薪資與社保紀錄。",
     decisionMeaning: "沒有穩定工作可能反映照顧、健康、交通、文件或制度誘因，不等於沒有動機。",
     caution: "不要把收入推估寫成事實；須標示來源與待確認。"
   },
   {
-    name: "感情家庭史",
+    name: "感情與家庭史",
     focus: "交往、婚姻、分居離婚、親職、扶養、家庭衝突與支持網絡如何影響金錢決策。",
     lookFor: "孩子出生、前段婚姻、扶養費、照顧分工、伴侶借貸、家暴/高衝突關係。",
     decisionMeaning: "關係義務常會改變支出優先順序；先理解誰在影響決策，再談財務方案。",
     caution: "保護案件、未成年資料與高衝突關係需督導確認。"
   },
   {
-    name: "疾病身心史",
+    name: "疾病與身心健康史",
     focus: "疾病、就醫、身心狀態、照顧負荷與醫療費用如何影響收入、支出與判斷力。",
     lookFor: "就醫中斷、慢性病、精神健康、成癮、自傷他傷、長照需求、家庭照顧者負荷。",
     decisionMeaning: "付款延遲、資源中斷或回覆困難，可能與症狀、照顧壓力或醫療可近性有關。",
@@ -117,7 +123,7 @@ const sampleEvents = [
     id: "E002",
     rocYear: 97,
     age: 28,
-    lane: "就業就學史",
+    lane: "就業與就學史",
     title: "工作型態轉為不定時",
     fact: "收入來源改為臨時或不定時工作，薪資、工時與勞保狀態需再確認。",
     voice: "哪邊有工作就去哪邊做。",
@@ -132,7 +138,7 @@ const sampleEvents = [
     id: "E003",
     rocYear: 101,
     age: 32,
-    lane: "感情家庭史",
+    lane: "感情與家庭史",
     title: "孩子出生與照顧分工改變",
     fact: "家庭照顧與固定支出增加，伴侶、親屬或主要照顧者的支持程度影響金錢決策。",
     voice: "希望孩子未來有一筆可以用的錢。",
@@ -147,7 +153,7 @@ const sampleEvents = [
     id: "E004",
     rocYear: 105,
     age: 36,
-    lane: "疾病身心史",
+    lane: "疾病與身心健康史",
     title: "就醫與照顧負荷增加",
     fact: "家庭成員就醫或身心狀態影響工作時間、交通與支出安排，需只記錄工作必要資訊。",
     voice: "那時候很多事情先顧身體和家裡。",
@@ -233,9 +239,18 @@ function defaultState() {
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem("caseTimelineToolState") || "null");
-    if (saved && saved.version === CURRENT_STATE_VERSION && Array.isArray(saved.events) && Array.isArray(saved.decisions)) {
-      saved.drafts = Array.isArray(saved.drafts) ? saved.drafts : [];
-      return saved;
+    if (saved && Array.isArray(saved.events) && Array.isArray(saved.decisions)) {
+      const base = defaultState();
+      return {
+        ...base,
+        ...saved,
+        version: CURRENT_STATE_VERSION,
+        events: saved.events.map((event) => ({ ...event, lane: normalizeLane(event.lane) })),
+        decisions: saved.decisions,
+        drafts: Array.isArray(saved.drafts) ? saved.drafts.map((draft) => draft.type === "event" ? { ...draft, lane: normalizeLane(draft.lane) } : draft) : [],
+        checks: Array.isArray(saved.checks) ? saved.checks : base.checks,
+        yearMode: saved.yearMode === "ad" ? "ad" : "roc"
+      };
     }
   } catch (_) {
     localStorage.removeItem("caseTimelineToolState");
@@ -260,6 +275,11 @@ function esc(text) {
   })[ch]);
 }
 
+function normalizeLane(lane) {
+  const value = laneAliases[lane] || lane;
+  return lanes.includes(value) ? value : "重大財務事件";
+}
+
 function render() {
   saveState();
   renderSummary();
@@ -277,8 +297,8 @@ function render() {
 function renderSummary() {
   $("#metricEvents").textContent = state.events.length;
   $("#metricDecisions").textContent = state.decisions.length;
-  $("#metricCovered").textContent = `${new Set(state.events.map((e) => e.lane).filter((lane) => lanes.includes(lane))).size}/${lanes.length}`;
-  $("#metricMoney").textContent = state.events.filter((e) => e.lane === "重大財務事件").length;
+  $("#metricCovered").textContent = `${new Set(state.events.map((e) => normalizeLane(e.lane)).filter((lane) => lanes.includes(lane))).size}/${lanes.length}`;
+  $("#metricMoney").textContent = state.events.filter((e) => normalizeLane(e.lane) === "重大財務事件").length;
   $("#metricSensitive").textContent = state.events.filter((e) => ["高度敏感", "不可外部分享"].includes(e.sensitivity)).length;
   $("#metricPending").textContent = state.events.filter((e) => e.confidence === "低").length;
 }
@@ -291,12 +311,12 @@ function renderTimeline() {
   const span = Array.from({ length: max - min + 1 }, (_, i) => min + i);
   chart.style.setProperty("--year-count", span.length);
   const label = (year) => state.yearMode === "ad" ? year + 1911 : year;
-  let html = `<div class="timeline-grid"><div class="timeline-cell timeline-head">泳道</div>`;
+  let html = `<div class="timeline-grid"><div class="timeline-cell timeline-head">歷程</div>`;
   html += span.map((year) => `<div class="timeline-cell timeline-head">${label(year)}</div>`).join("");
   for (const lane of lanes) {
     html += `<div class="timeline-cell lane-label">${lane}</div>`;
     for (const year of span) {
-      const events = state.events.filter((e) => e.lane === lane && Number(e.rocYear) === year);
+      const events = state.events.filter((e) => normalizeLane(e.lane) === lane && Number(e.rocYear) === year);
       html += `<div class="timeline-cell">${events.map(eventPill).join("")}</div>`;
     }
   }
@@ -311,18 +331,19 @@ function eventPill(event) {
 }
 
 function laneClass(lane) {
+  const normalized = normalizeLane(lane);
   return ({
     "居住遷移史": "residence",
-    "就業就學史": "work",
-    "感情家庭史": "relationship",
-    "疾病身心史": "health",
+    "就業與就學史": "work",
+    "感情與家庭史": "relationship",
+    "疾病與身心健康史": "health",
     "社會資源使用歷程": "resource",
     "重大財務事件": "money"
-  })[lane] || "resource";
+  })[normalized] || "resource";
 }
 
 function renderLaneChart() {
-  const counts = lanes.map((lane) => ({ lane, count: state.events.filter((e) => e.lane === lane).length }));
+  const counts = lanes.map((lane) => ({ lane, count: state.events.filter((e) => normalizeLane(e.lane) === lane).length }));
   const max = Math.max(...counts.map((d) => d.count), 1);
   $("#laneChart").innerHTML = counts.map((d) => {
     const width = Math.max((d.count / max) * 100, d.count ? 8 : 0);
@@ -340,7 +361,7 @@ function renderEventsTable() {
     <tr>
       <td>${esc(e.id)}</td>
       <td>${esc(e.rocYear)}</td>
-      <td>${esc(e.lane)}</td>
+      <td>${esc(normalizeLane(e.lane))}</td>
       <td>
         <div class="event-detail">
           <strong>${esc(e.title)}</strong>
@@ -381,7 +402,7 @@ function eventDraftCard(draft, index) {
         <label>信心<select data-draft-field="confidence">${confidence}</select></label>
         <label class="full">事件標題<input data-draft-field="title" value="${esc(draft.title || "")}" /></label>
         <label class="full">事件事實<textarea data-draft-field="fact" rows="3">${esc(draft.fact || "")}</textarea></label>
-        <label class="full">當事人說法<textarea data-draft-field="voice" rows="2">${esc(draft.voice || "")}</textarea></label>
+        <label class="full">案主說法<textarea data-draft-field="voice" rows="2">${esc(draft.voice || "")}</textarea></label>
         <label class="full">脈絡影響<textarea data-draft-field="impact" rows="2">${esc(draft.impact || "")}</textarea></label>
         <label class="full">待釐清<textarea data-draft-field="unknowns" rows="2">${esc(draft.unknowns || "")}</textarea></label>
       </div>
@@ -400,9 +421,9 @@ function decisionDraftCard(draft, index) {
         <label>連結事件 ID<input data-draft-field="eventId" value="${esc(draft.eventId || "")}" /></label>
         <label>信心<input data-draft-field="confidence" value="${esc(draft.confidence || "低")}" /></label>
         <label class="full">決策問題<input data-draft-field="question" value="${esc(draft.question || "")}" /></label>
-        <label class="full">可選選項<textarea data-draft-field="options" rows="2">${esc(draft.options || "")}</textarea></label>
+        <label class="full">當時可行選項<textarea data-draft-field="options" rows="2">${esc(draft.options || "")}</textarea></label>
         <label class="full">最大擔心<textarea data-draft-field="fear" rows="2">${esc(draft.fear || "")}</textarea></label>
-        <label class="full">脈絡化解讀<textarea data-draft-field="interpretation" rows="3">${esc(draft.interpretation || "")}</textarea></label>
+        <label class="full">脈絡解讀<textarea data-draft-field="interpretation" rows="3">${esc(draft.interpretation || "")}</textarea></label>
       </div>
       <div class="draft-actions">
         <button type="button" data-confirm-draft="${index}">確認加入決策卡</button>
@@ -429,16 +450,16 @@ function confirmDraft(index) {
       id: nextId("D", state.decisions),
       eventId: draft.eventId || "",
       question: draft.question || "待補決策問題",
-      options: draft.options || "待補可選選項",
+      options: draft.options || "待補當時可行選項",
       fear: draft.fear || "待補最大擔心",
-      interpretation: draft.interpretation || "待補脈絡化解讀"
+      interpretation: draft.interpretation || "待補脈絡解讀"
     });
   } else {
     state.events.push({
       id: nextId("E", state.events),
       rocYear: Number(draft.rocYear || 0),
       age: Number(draft.age || 0),
-      lane: lanes.includes(draft.lane) ? draft.lane : "重大財務事件",
+      lane: normalizeLane(draft.lane),
       title: draft.title || "待補事件標題",
       fact: draft.fact || "待補事件事實",
       voice: draft.voice || "",
@@ -488,7 +509,7 @@ function renderDecisionCards() {
       <h3>${esc(d.id)} ${esc(d.question)}</h3>
       <dl>
         <dt>連結事件</dt><dd>${esc(d.eventId || "未連結")}</dd>
-        <dt>可選選項</dt><dd>${esc(d.options)}</dd>
+        <dt>當時可行選項</dt><dd>${esc(d.options)}</dd>
         <dt>最大擔心</dt><dd>${esc(d.fear)}</dd>
         <dt>脈絡解讀</dt><dd>${esc(d.interpretation)}</dd>
       </dl>
@@ -515,7 +536,7 @@ function updateExportProbe() {
   probe.dataset.eventCount = String(state.events.length);
   probe.dataset.decisionCount = String(state.decisions.length);
   probe.dataset.draftCount = String(state.drafts.length);
-  probe.dataset.historyCoverage = String(new Set(state.events.map((e) => e.lane).filter((lane) => lanes.includes(lane))).size);
+  probe.dataset.historyCoverage = String(new Set(state.events.map((e) => normalizeLane(e.lane)).filter((lane) => lanes.includes(lane))).size);
   probe.dataset.sheetCount = String(workbookSheetNames.length);
   probe.dataset.historyGuideCount = String(historyGuides.length);
   probe.dataset.researchRows = String(researchRows.length);
@@ -554,7 +575,7 @@ function bindEvents() {
       id: nextId("E", state.events),
       rocYear: Number(data.rocYear),
       age: Number(data.age || 0),
-      lane: data.lane,
+      lane: normalizeLane(data.lane),
       title: data.title,
       fact: data.fact,
       voice: data.voice,
@@ -690,7 +711,7 @@ async function analyzeIntakeText(text) {
   const drafts = normalizeAnalysisDrafts(analysis, cleanText);
   state.drafts = [...drafts, ...state.drafts].slice(0, 20);
   render();
-  const mode = analysis?.mode === "openai" ? "AI 分析" : "本機語意規則";
+  const mode = analysis?.mode === "openai" ? "AI 輔助整理" : "初步規則整理";
   setAiStatus(`${mode}完成：產生 ${drafts.length} 筆待確認草稿。請社工逐筆確認後再加入時間軸。`);
 }
 
@@ -705,7 +726,7 @@ function normalizeAnalysisDrafts(analysis, fallbackText) {
 
 function normalizeEventDraft(item) {
   if (!item) return null;
-  const lane = lanes.includes(item.lane) ? item.lane : detectLane([item.title, item.fact, item.voice].join(" "));
+  const lane = normalizeLane(item.lane || detectLane([item.title, item.fact, item.voice].join(" ")));
   return {
     type: "event",
     rocYear: item.rocYear || "",
@@ -729,9 +750,9 @@ function normalizeDecisionDraft(item) {
     type: "decision",
     eventId: item.eventId || "",
     question: item.question || "待確認決策問題",
-    options: item.options || "待補可選選項",
+    options: item.options || "待補當時可行選項",
     fear: item.fear || "待補最大擔心",
-    interpretation: item.interpretation || "待補脈絡化解讀",
+    interpretation: item.interpretation || "待補脈絡解讀",
     confidence: item.confidence || "低"
   };
 }
@@ -758,7 +779,7 @@ function localSemanticDrafts(text) {
       unknowns: guide.lookFor,
       sensitivity: defaultSensitivity(lane),
       confidence: extractRocYear(sentence) ? "中" : "低",
-      source: "本機語意草稿",
+      source: "初步整理草稿",
       nextStep: "社工確認後加入；必要時補來源與佐證。"
     };
   });
@@ -781,21 +802,23 @@ function detectLane(text) {
   const rules = [
     ["重大財務事件", /卡債|信用卡|債|借|貸款|錢莊|欠|利息|協商|還款|帳戶|存款|保險|財務|金錢|繳/],
     ["社會資源使用歷程", /低收|中低收|急難|補助|社工|政府|方案|轉介|法扶|網絡|服務|資格|文件|兒少教育發展帳戶/],
-    ["疾病身心史", /疾病|生病|就醫|醫院|精神|憂鬱|焦慮|健康|長照|照顧者|失能|醫療/],
-    ["感情家庭史", /感情|交往|婚|離婚|伴侶|先生|太太|孩子|小孩|扶養|家暴|親職|家庭/],
-    ["就業就學史", /工作|就業|就學|學校|學歷|職訓|薪水|收入|失業|工時|留停/],
+    ["疾病與身心健康史", /疾病|生病|就醫|醫院|精神|憂鬱|焦慮|健康|長照|照顧者|失能|醫療/],
+    ["感情與家庭史", /感情|交往|婚|離婚|伴侶|先生|太太|孩子|小孩|扶養|家暴|親職|家庭/],
+    ["就業與就學史", /工作|就業|就學|學校|學歷|職訓|薪水|收入|失業|工時|留停/],
     ["居住遷移史", /居住|租屋|搬家|搬|遷|住宿|戶籍|房租|安置|中途之家|住所/]
   ];
   return rules.find(([, pattern]) => pattern.test(value))?.[0] || "重大財務事件";
 }
 
 function guideForLane(lane) {
-  return historyGuides.find((item) => item.name === lane) || historyGuides[historyGuides.length - 1];
+  const normalized = normalizeLane(lane);
+  return historyGuides.find((item) => item.name === normalized) || historyGuides[historyGuides.length - 1];
 }
 
 function defaultSensitivity(lane) {
-  if (lane === "疾病身心史" || lane === "重大財務事件") return "高度敏感";
-  if (lane === "感情家庭史" || lane === "社會資源使用歷程") return "內部";
+  const normalized = normalizeLane(lane);
+  if (normalized === "疾病與身心健康史" || normalized === "重大財務事件") return "高度敏感";
+  if (normalized === "感情與家庭史" || normalized === "社會資源使用歷程") return "內部";
   return "一般";
 }
 
@@ -851,7 +874,7 @@ async function extractFileText(file) {
     return { name, text: `檔案：${name}\nPDF 已上傳，但目前無法可靠抽取文字；掃描影像 PDF 請先 OCR 或貼上摘要。`, note: "PDF 需文字層或 OCR" };
   }
   if (["doc", "docx", "xls", "xlsx"].includes(ext)) {
-    return { name, text: `檔案：${name}\nWord/Excel 已選取；DOCX/XLSX 可在 production 由後端抽取，舊版 DOC/XLS 請轉存或貼上摘要文字。`, note: "Word/Excel 需可讀格式" };
+    return { name, text: `檔案：${name}\nWord/Excel 已選取；DOCX/XLSX 可由系統嘗試抽取，舊版 DOC/XLS 請轉存或貼上摘要文字。`, note: "Word/Excel 需可讀格式" };
   }
   return { name, text: `檔案：${name}\n檔案類型尚未支援自動抽取，請貼上摘要文字。`, note: "類型未支援" };
 }
@@ -923,23 +946,23 @@ function buildXlsx() {
     {
       name: "事件時間軸",
       rows: [
-        ["ID", "民國年", "西元年", "年齡", "歷程面向", "事件標題", "事件事實", "當事人說法", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
-        ...state.events.map((e) => [e.id, e.rocYear, Number(e.rocYear) + 1911, e.age, e.lane, e.title, e.fact, e.voice, e.impact || "", e.unknowns || "", e.source, e.sensitivity, e.confidence, e.nextStep])
+        ["ID", "民國年", "西元年", "年齡", "歷程面向", "事件標題", "事件事實", "案主說法", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
+        ...state.events.map((e) => [e.id, e.rocYear, Number(e.rocYear) + 1911, e.age, normalizeLane(e.lane), e.title, e.fact, e.voice, e.impact || "", e.unknowns || "", e.source, e.sensitivity, e.confidence, e.nextStep])
       ]
     },
     {
       name: "決策節點卡",
       rows: [
-        ["ID", "連結事件", "決策問題", "可選選項", "最大擔心", "脈絡化解讀"],
+        ["ID", "連結事件", "決策問題", "當時可行選項", "最大擔心", "脈絡解讀"],
         ...state.decisions.map((d) => [d.id, d.eventId, d.question, d.options, d.fear, d.interpretation])
       ]
     },
     {
       name: "待確認草稿",
       rows: [
-        ["類型", "歷程/連結事件", "標題/問題", "事實/選項", "當事人說法/最大擔心", "脈絡影響", "待釐清/解讀", "信心"],
+        ["類型", "歷程/連結事件", "標題/問題", "事實/選項", "案主說法/最大擔心", "脈絡影響", "待釐清/解讀", "信心"],
         ...state.drafts.map((draft) => draft.type === "event"
-          ? ["事件", draft.lane, draft.title, draft.fact, draft.voice, draft.impact, draft.unknowns, draft.confidence]
+          ? ["事件", normalizeLane(draft.lane), draft.title, draft.fact, draft.voice, draft.impact, draft.unknowns, draft.confidence]
           : ["決策", draft.eventId, draft.question, draft.options, draft.fear, "", draft.interpretation, draft.confidence || "低"])
       ]
     },
@@ -1166,7 +1189,7 @@ window.caseTimelineTool = {
       eventCount: state.events.length,
       decisionCount: state.decisions.length,
       draftCount: state.drafts.length,
-      historyCoverage: new Set(state.events.map((e) => e.lane).filter((lane) => lanes.includes(lane))).size,
+      historyCoverage: new Set(state.events.map((e) => normalizeLane(e.lane)).filter((lane) => lanes.includes(lane))).size,
       sheetCount: workbookSheetNames.length,
       historyGuideCount: historyGuides.length,
       researchRows: researchRows.length,

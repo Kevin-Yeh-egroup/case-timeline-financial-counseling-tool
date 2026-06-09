@@ -1,8 +1,8 @@
 const DEFAULT_LANES = [
   "居住遷移史",
-  "就業就學史",
-  "感情家庭史",
-  "疾病健康史",
+  "就業與就學史",
+  "感情與家庭史",
+  "疾病與身心健康史",
   "社會資源使用歷程",
   "重大財務事件"
 ];
@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
       message: "OPENAI_API_KEY is not configured; frontend should use local semantic rules.",
       events: [],
       decisions: [],
-      warnings: ["尚未設定 AI API key，使用本機語意規則產生草稿。"]
+      warnings: ["尚未設定 AI API key，使用初步規則整理產生草稿。"]
     });
   }
 
@@ -65,7 +65,7 @@ module.exports = async function handler(req, res) {
                   "你是台灣社工與財務健康諮詢的個案脈絡整理助手。",
                   "任務是把資料整理成「待社工確認」的生命軸線草稿，不得直接下診斷、責備案主、提供投資或借貸建議。",
                   "請使用繁體中文與台灣常用語，民國年可填數字；不確定就留空字串。",
-                  "請特別辨識居住遷移、就業就學、感情家庭、疾病健康、社會資源使用、重大財務事件。",
+                  "請特別辨識居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用、重大財務事件。",
                   "請把個案決策理解為資源、風險、制度條件、關係壓力與能力限制下的選擇，不要用道德評價。"
                 ].join("\n")
               }

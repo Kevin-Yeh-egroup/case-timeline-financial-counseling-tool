@@ -59,7 +59,7 @@
 - Deployment verified before this log entry was committed: `dpl_99x5fQFRWoWdKK2kNuDCqQ8PnGRn`
 - Stable public URL: `https://case-timeline-financial-counseling.vercel.app/`
 - Update summary:
-  - Changed timeline lanes to residence/migration, employment/education, relationship/family, illness/health, social-resource use, and major financial events.
+  - Changed the timeline structure to residence/migration, employment/education, relationship/family, illness/health, social-resource use, and major financial events.
   - Added context-tab history interpretation prompts.
   - Added event `impact` and `unknowns` fields.
   - Added Excel export sheets for six-history interpretation and research-summary notes.
@@ -83,7 +83,14 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Added optional Vercel API routes for DOCX/XLSX/PDF text extraction and OpenAI structured analysis.
   - Kept browser-local fallback rules when `OPENAI_API_KEY` is not configured.
   - Added Excel export support for a `待確認草稿` sheet.
-- Verification status: pending final production deployment and browser check.
+- Production deployment: `dpl_66baAd4rfTj1eQbQ5X44wCsdytRV`
+- Stable public URL: `https://case-timeline-financial-counseling.vercel.app/`
+- Production verification:
+  - stable URL returned `200 OK` with `X-Robots-Tag: noindex, nofollow, noarchive`
+  - `robots.txt` returned `User-agent: *` and `Disallow: /`
+  - `/api/analyze` returned `local-fallback` and `Cache-Control: no-store` when `OPENAI_API_KEY` was not configured
+  - `/api/extract-file` returned text extraction and `Cache-Control: no-store`
+  - browser flow confirmed drafts remain in review before being added to the timeline
 - Local predeployment verification:
   - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
   - API mock without `OPENAI_API_KEY`: `/api/analyze` returned `local-fallback` with `Cache-Control: no-store`.
@@ -92,3 +99,18 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Browser desktop flow: text input generated `3` drafts; confirming the first draft changed events from `6` to `7` and drafts from `3` to `2`.
   - Export probe after confirmation: sheet count `8`, draft count `2`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
   - Browser mobile width `390px`: no whole-page horizontal overflow; AI tab remained usable.
+
+## v0.4 Taiwan Wording Pass
+
+- Date: 2026-06-09
+- Update summary:
+  - Replaced reader-facing `泳道` with `歷程`.
+  - Renamed awkward history labels to `就業與就學史`, `感情與家庭史`, and `疾病與身心健康史`.
+  - Replaced interface wording such as `production`, `本機語意規則`, `可選選項`, `脈絡化解讀`, and `當事人說法` with Taiwan social-work-facing wording.
+  - Added migration mapping so older saved lane names are normalized to the new wording.
+- Local predeployment verification:
+  - `rg` wording scan found awkward terms only in migration aliases and this log entry, not in reader-facing UI.
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - API mock without `OPENAI_API_KEY`: `/api/analyze` returned `local-fallback`, `Cache-Control: no-store`, and the revised warning text.
+  - Browser desktop wording check: timeline head `歷程`; AI heading `AI 輔助匯入`; no visible `泳道`, `production`, `可選選項`, `脈絡化解讀`, `當事人說法`, or `疾病身心史`.
+  - Browser mobile width `390px`: no whole-page horizontal overflow; long history label remained visible.

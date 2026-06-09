@@ -28,6 +28,7 @@
 - [x] Confirming a draft adds it to the timeline or decision-card list.
 - [x] Excel export includes a `待確認草稿` sheet.
 - [x] API routes return no-store JSON responses.
+- [x] Taiwan wording pass removes reader-facing `泳道`, engineering terms, and awkward field labels.
 - [x] Production URL returns `200 OK`.
 - [x] Production URL has `X-Robots-Tag`.
 - [x] Production `robots.txt` returns expected content.
@@ -39,7 +40,7 @@
 - GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
-- Current app version: `v0.3-ai-import-drafts`
+- Current app version: `v0.4-taiwan-wording`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`
 - Production target: `Ready`

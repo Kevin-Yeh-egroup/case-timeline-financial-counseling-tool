@@ -11,7 +11,7 @@ The training materials Kevin provided repeatedly connect financial decisions wit
 - Social-resource use history
 - Major financial events
 
-The design change in v0.2 is to make these six domains the primary timeline lanes. This keeps the tool from becoming a narrow debt ledger and helps practitioners read decisions through available options, safety pressure, family obligations, health limits, resource access, and Taiwan policy context.
+The design change in v0.2 is to make these six domains the primary timeline structure. This keeps the tool from becoming a narrow debt ledger and helps practitioners read decisions through available options, safety pressure, family obligations, health limits, resource access, and Taiwan policy context.
 
 The user-provided InfoCenter materials were used for synthesis only. The public tool does not republish transcripts, audio links, case details, or raw short URLs.
 
@@ -26,7 +26,7 @@ The user-provided InfoCenter materials were used for synthesis only. The public 
 
 ## Design Decisions
 
-- Replace generic event lanes with the six history lanes.
+- Replace generic event categories with the six history domains.
 - Add `impact` and `unknowns` fields to every event.
 - Add a context tab with history prompts and Taiwan policy background.
 - Export six-history prompts and research summary into Excel.

@@ -12,7 +12,7 @@ Public-safe static web tool for Taiwan social workers, financial-health counselo
 - Excel download is generated in the browser as `.xlsx`.
 - Public prototype should use sample data only unless the responsible institution explicitly approves real-case handling.
 - Review-stage noindex controls are intentionally enabled.
-- Version `v0.3` adds AI import, file upload, voice input, and a social-worker confirmation queue before events enter the life timeline.
+- Version `v0.4` keeps the AI import flow and revises reader-facing wording for Taiwan social-work usage.
 
 ## Safety Boundaries
 
