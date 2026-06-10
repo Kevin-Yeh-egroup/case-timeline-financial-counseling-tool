@@ -210,7 +210,7 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Local static preview note: `/api/analyze` returns unsupported POST on the Python static server, so the browser correctly uses local semantic fallback there.
 - GitHub/Vercel production deployment:
   - Commit: `63f9aac Add v0.9 timeline test package flow`.
-  - Deployment: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`, status `Ready`, target `production`.
+  - Verification deployment: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`, status `Ready`, target `production`.
   - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`.
   - Stable URL verification: root `200`, `app.js` contains `v0.9-test-pack-human-flow`, `robots.txt` returns `Disallow: /`, and `X-Robots-Tag: noindex, nofollow, noarchive` remains active.
   - Production API verification: `/api/extract-file` returned text extraction with `Cache-Control: no-store`; `/api/analyze` returned `local-fallback` because production has no `OPENAI_API_KEY` configured.
