@@ -208,4 +208,9 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - File-content import test used `test-fixtures/multi-year-life-context-intake.txt`; generated five event drafts for ROC 98-104, 101-now, 105-107, 108-110, 110-now plus one decision draft.
   - Mobile width around `390px`: no whole-page horizontal overflow; top buttons and `年` headers remained visible.
   - Local static preview note: `/api/analyze` returns unsupported POST on the Python static server, so the browser correctly uses local semantic fallback there.
-- Production deployment: pending Kevin approval for external GitHub/Vercel write.
+- GitHub/Vercel production deployment:
+  - Commit: `63f9aac Add v0.9 timeline test package flow`.
+  - Deployment: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`, status `Ready`, target `production`.
+  - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`.
+  - Stable URL verification: root `200`, `app.js` contains `v0.9-test-pack-human-flow`, `robots.txt` returns `Disallow: /`, and `X-Robots-Tag: noindex, nofollow, noarchive` remains active.
+  - Production API verification: `/api/extract-file` returned text extraction with `Cache-Control: no-store`; `/api/analyze` returned `local-fallback` because production has no `OPENAI_API_KEY` configured.

@@ -61,5 +61,6 @@
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
 - Current app version: `v0.9-test-pack-human-flow`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
+- Latest deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`
 - Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`
 - Production target: `Ready`
