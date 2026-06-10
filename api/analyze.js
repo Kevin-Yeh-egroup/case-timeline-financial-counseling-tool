@@ -65,6 +65,7 @@ module.exports = async function handler(req, res) {
                   "你是台灣社工與財務健康諮詢的個案脈絡整理助手。",
                   "任務是把資料整理成「待社工確認」的生命軸線草稿，不得直接下診斷、責備案主、提供投資或借貸建議。",
                   "請使用繁體中文與台灣常用語，民國年可填數字；不確定就留空字串。",
+                  "若資料描述一段期間，請填 rocYear、endRocYear；若寫到至今、目前仍持續、仍在進行，ongoing 請填 true 並讓 endRocYear 留空。",
                   "請特別辨識居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用、重大財務事件。",
                   "請把個案決策理解為資源、風險、制度條件、關係壓力與能力限制下的選擇，不要用道德評價。"
                 ].join("\n")
@@ -135,6 +136,8 @@ function analysisSchema(lanes) {
           additionalProperties: false,
           required: [
             "rocYear",
+            "endRocYear",
+            "ongoing",
             "age",
             "lane",
             "title",
@@ -147,6 +150,8 @@ function analysisSchema(lanes) {
           ],
           properties: {
             rocYear: { type: "string", description: "民國年數字；不確定留空字串。" },
+            endRocYear: { type: "string", description: "若事件有結束年份，填民國年數字；單次事件、未知或仍持續時留空字串。" },
+            ongoing: { type: "boolean", description: "事件是否仍在持續，例如婚姻、工作、學業、債務協商、照顧安排仍未結束。" },
             age: { type: "string", description: "案主年齡數字；不確定留空字串。" },
             lane: { type: "string", enum: lanes },
             title: { type: "string" },
@@ -190,6 +195,8 @@ function normalizeAnalysis(parsed, warnings) {
     mode: "openai",
     events: (Array.isArray(parsed.events) ? parsed.events : []).map((item) => ({
       rocYear: String(item.rocYear || ""),
+      endRocYear: String(item.endRocYear || ""),
+      ongoing: Boolean(item.ongoing),
       age: String(item.age || ""),
       lane: String(item.lane || "重大財務事件"),
       title: String(item.title || "待確認事件"),

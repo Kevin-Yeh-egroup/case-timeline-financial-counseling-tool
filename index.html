@@ -23,7 +23,11 @@
           </button>
           <button class="icon-button quiet" id="resetSample" type="button" title="重設範例">
             <span aria-hidden="true">↺</span>
-            重設
+            載入範例測試包
+          </button>
+          <button class="icon-button quiet danger" id="clearExamplePack" type="button" title="刪除範例測試包">
+            <span aria-hidden="true">×</span>
+            刪除範例
           </button>
         </div>
       </header>
@@ -66,15 +70,41 @@
                 </select>
               </label>
             </div>
+            <div class="timeline-controls" aria-label="時間軸篩選">
+              <label>主要檢視人物
+                <select id="timelinePrimaryActor"></select>
+              </label>
+              <label>關聯方式
+                <select id="timelineMatchMode">
+                  <option value="shared">共同事件</option>
+                  <option value="related">任一相關事件</option>
+                </select>
+              </label>
+              <label>歷程分類
+                <select id="timelineLaneFilter">
+                  <option value="all">全部歷程</option>
+                </select>
+              </label>
+              <label class="toggle-row">
+                <input id="showContextTimeline" type="checkbox" />
+                <span>顯示台灣制度背景參考</span>
+              </label>
+              <details class="person-picker">
+                <summary id="compareActorSummary">加入比較人物</summary>
+                <div id="timelineCompareActorOptions" class="choice-grid compact"></div>
+              </details>
+              <div id="timelineFilterSummary" class="field-note"></div>
+            </div>
             <div class="timeline-scroll">
               <div id="timelineChart" class="timeline-chart" role="img" aria-label="事件時間軸圖表"></div>
             </div>
           </section>
           <section class="panel">
             <div class="section-head">
-              <h2>歷程分布</h2>
+              <h2>事件清單</h2>
+              <span id="timelineEventCount" class="mini-count"></span>
             </div>
-            <div id="laneChart" class="bar-chart" aria-label="歷程分布統計"></div>
+            <div id="timelineEventList" class="timeline-event-list" aria-label="依歷程與人物分類的事件清單"></div>
           </section>
         </div>
       </section>
@@ -162,8 +192,14 @@
             <div class="section-head">
               <h2>新增事件</h2>
             </div>
-            <label>民國年<input name="rocYear" type="number" min="1" max="150" required value="108" /></label>
+            <input name="eventId" type="hidden" />
+            <label>開始民國年<input name="rocYear" type="number" min="1" max="150" required value="108" /></label>
             <label>案主年齡<input name="age" type="number" min="0" max="120" value="30" /></label>
+            <label>結束民國年<input name="endRocYear" type="number" min="1" max="150" placeholder="單次事件可留空" /></label>
+            <label class="toggle-row">
+              <input name="ongoing" type="checkbox" />
+              <span>仍在持續</span>
+            </label>
             <label>歷程面向
               <select name="lane" required>
                 <option>居住遷移史</option>
@@ -198,7 +234,10 @@
                 <option>高</option>
               </select>
             </label>
-            <button class="primary" type="submit">新增到時間軸</button>
+            <div class="button-row">
+              <button class="primary" id="eventSubmitButton" type="submit">新增到時間軸</button>
+              <button class="ghost" id="cancelEventEdit" type="button" hidden>取消編輯</button>
+            </div>
           </form>
           <section class="panel table-panel">
             <div class="section-head">
@@ -210,7 +249,7 @@
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>民國年</th>
+                    <th>期間</th>
                     <th>歷程</th>
                     <th>事件</th>
                     <th>敏感度</th>
