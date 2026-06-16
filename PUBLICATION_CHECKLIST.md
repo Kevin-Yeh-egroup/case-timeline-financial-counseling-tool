@@ -46,6 +46,17 @@
 - [x] Legacy sample content from earlier browser state is recognized and can be batch-deleted as sample data.
 - [x] Multi-year fake intake fixtures are available in TXT, XLSX, and DOCX formats for import testing.
 - [x] Local semantic import creates editable drafts for multi-year and ongoing events before timeline insertion.
+- [x] Import drafts require confirmation of people, event facts, time, place, objects, and six-history classification before archiving.
+- [x] Relationship-family classification is limited to marriage, dating, partner, separation, divorce, and intimate-relationship context; family money support is treated as major financial context.
+- [x] Drafts can record related history dimensions and extra tags without replacing the six main dimensions.
+- [x] Household/cohabitant records can be edited after creation.
+- [x] Timeline duration events keep stable vertical positions across years to reduce misreading from row jumps.
+- [x] Multi-actor fake intake fixture is available for testing case-owner, mother, father, work, and relationship events in one import.
+- [x] Events without a confirmed start year stay out of the visual timeline and are marked as not shown on the visual timeline in the event list.
+- [x] Draft event cards can be split into two editable drafts or merged with the next event draft.
+- [x] Draft actor prompts can add an unlinked person as a household member or link the draft to an existing household member.
+- [x] Interface uses a project-local generated masthead asset and warmer colors without adding readable fake case data to the image.
+- [x] Visual polish keeps timeline, event list, and draft review flows as the first-screen working surface rather than turning the app into a landing page.
 - [x] API routes return no-store JSON responses.
 - [x] Taiwan wording pass removes reader-facing `泳道`, engineering terms, and awkward field labels.
 - [x] Production URL returns `200 OK`.
@@ -59,7 +70,7 @@
 - GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
-- Current app version: `v0.9-test-pack-human-flow`
+- Current app version: `v0.12-warm-interface`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - v0.9 verification deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`
 - Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`

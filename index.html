@@ -144,6 +144,7 @@
             <div class="section-head">
               <h2>新增同住人口</h2>
             </div>
+            <input name="stakeholderId" type="hidden" />
             <label>稱謂或角色<input name="label" required value="主要照顧者" /></label>
             <label>與案主關係
               <select name="relation" required>
@@ -175,7 +176,10 @@
               </select>
             </label>
             <label>居住/照顧脈絡<textarea name="notes" rows="3">請用角色或稱謂描述，避免填入真實姓名、地址、電話或身分證字號。</textarea></label>
-            <button class="primary" type="submit">新增同住人口</button>
+            <div class="button-row">
+              <button class="primary" id="stakeholderSubmitButton" type="submit">新增同住人口</button>
+              <button class="ghost" id="cancelStakeholderEdit" type="button" hidden>取消編輯</button>
+            </div>
           </form>
           <section class="panel cards-panel">
             <div class="section-head">
@@ -217,6 +221,12 @@
             <label>事件標題<input name="title" required value="低收資格異動與繳存中斷" /></label>
             <label>事件事實<textarea name="fact" rows="3">家庭現金流不足，兒少教育發展帳戶或固定支出繳存中斷，需確認資格、文件與當時支出壓力。</textarea></label>
             <label>案主說法<textarea name="voice" rows="2">不是不想存，是那陣子先處理眼前的錢。</textarea></label>
+            <label>辨識人物<input name="actorText" placeholder="例如：案主、案母、案父" /></label>
+            <label>地點/窗口<input name="place" placeholder="例如：租屋處、社福窗口、銀行" /></label>
+            <label>金額/文件/資源<input name="objects" placeholder="例如：5000元、中低收入戶、債務清冊" /></label>
+            <label>補充標籤<input name="extraTags" placeholder="例如：親友金錢支援、福利身分" /></label>
+            <label>相關歷程面向<input name="relatedLanes" placeholder="可用頓號分隔；主分類仍以上方歷程面向為準" /></label>
+            <label>原文摘錄<textarea name="sourceText" rows="2" placeholder="可保留去識別化原文，方便回頭核對。"></textarea></label>
             <label>脈絡影響<textarea name="impact" rows="2">可能牽動孩子未來資產、福利資格、家庭信任與社工後續資源連結。</textarea></label>
             <label>待釐清<textarea name="unknowns" rows="2">當時收入、租金、照顧支出、是否已詢問社工或承辦窗口。</textarea></label>
             <label>敏感度

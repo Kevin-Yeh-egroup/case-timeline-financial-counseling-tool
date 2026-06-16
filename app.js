@@ -1,4 +1,4 @@
-const CURRENT_STATE_VERSION = "v0.9-test-pack-human-flow";
+const CURRENT_STATE_VERSION = "v0.12-warm-interface";
 const EXAMPLE_PACKAGE_ID = "example-life-context-pack";
 const lanes = ["居住遷移史", "就業與就學史", "感情與家庭史", "疾病與身心健康史", "社會資源使用歷程", "重大財務事件"];
 const policyLaneName = "台灣制度背景";
@@ -9,6 +9,16 @@ const laneAliases = {
   "疾病健康史": "疾病與身心健康史"
 };
 const sensitivityOptions = ["通過", "需遮罩", "需同意", "不得分享", "需督導確認"];
+const actorCueMap = [
+  ["案主本人", /案主|個案|本人|服務對象/],
+  ["案母", /案母|母親|媽媽|母/],
+  ["案父", /案父|父親|爸爸|父/],
+  ["子女", /子女|孩子|小孩|兒子|女兒/],
+  ["配偶/伴侶", /配偶|伴侶|先生|太太|丈夫|妻子|男友|女友|同居人/],
+  ["主要照顧者", /主要照顧者|照顧者/],
+  ["同住親屬", /親屬|手足|哥哥|姊姊|姐姐|弟弟|妹妹|阿姨|叔叔|姑姑|舅舅|祖父|祖母|外公|外婆/]
+];
+const moneyPattern = /(\d+(?:\.\d+)?\s*(?:萬元|萬|元|塊)|生活費|負債|借貸|債務|還款|信用卡|利息|催收|帳戶|補助|中低收入戶|低收入戶|租金補貼)/g;
 
 const historyGuides = [
   {
@@ -385,7 +395,7 @@ function loadState() {
           actorIds: normalizeActorIds(decision.actorIds, stakeholders),
           packageId: decision.packageId || (isLegacyExampleDecision(decision) ? EXAMPLE_PACKAGE_ID : "")
         })),
-        drafts: Array.isArray(saved.drafts) ? saved.drafts.map((draft) => draft.type === "event" ? { ...draft, lane: normalizeLane(draft.lane) } : draft) : [],
+        drafts: Array.isArray(saved.drafts) ? saved.drafts.map((draft) => normalizeDraftRecord(draft, stakeholders)).filter(Boolean) : [],
         checks: Array.isArray(saved.checks) ? saved.checks : base.checks,
         yearMode: saved.yearMode === "ad" ? "ad" : "roc",
         timelinePrimaryActorId: primaryActorId,
@@ -439,24 +449,74 @@ function normalizeEventRecord(event, stakeholders = state?.stakeholders || sampl
   const start = Number(event.rocYear) || "";
   const end = numberOrEmpty(event.endRocYear);
   const packageId = event.packageId || (isLegacyExampleEvent(event) ? EXAMPLE_PACKAGE_ID : "");
+  const lane = normalizeLane(event.lane);
   return {
     ...event,
     rocYear: start,
     endRocYear: end && start && end >= start ? end : "",
     ongoing: Boolean(event.ongoing),
-    lane: normalizeLane(event.lane),
+    lane,
+    relatedLanes: normalizeRelatedLanes(event.relatedLanes, lane),
+    extraTags: event.extraTags || "",
+    place: event.place || "",
+    objects: event.objects || "",
+    actorText: event.actorText || actorNamesFromIds(event.actorIds || [], stakeholders),
+    sourceText: event.sourceText || "",
     actorIds: normalizeActorIds(event.actorIds, stakeholders),
     source: packageId === EXAMPLE_PACKAGE_ID ? exampleSource(event.source) : event.source,
     packageId
   };
 }
 
+function normalizeDraftRecord(draft, stakeholders = state?.stakeholders || sampleStakeholders) {
+  if (!draft) return null;
+  if (draft.type === "decision") return normalizeDecisionDraft(draft);
+  const text = [draft.sourceText, draft.title, draft.fact, draft.voice].filter(Boolean).join(" ");
+  const lane = normalizeLane(draft.lane || detectLane(text));
+  const period = extractPeriod(text);
+  return {
+    type: "event",
+    rocYear: draft.rocYear || period.rocYear || "",
+    endRocYear: draft.endRocYear || period.endRocYear || "",
+    ongoing: Boolean(draft.ongoing || period.ongoing),
+    age: draft.age || "",
+    lane,
+    relatedLanes: normalizeRelatedLanes(draft.relatedLanes, lane),
+    extraTags: draft.extraTags || "",
+    title: draft.title || titleFromSentence(text, lane),
+    fact: draft.fact || draft.what || text || "",
+    voice: draft.voice || "",
+    impact: draft.impact || guideForLane(lane).decisionMeaning,
+    unknowns: draft.unknowns || guideForLane(lane).lookFor,
+    sensitivity: draft.sensitivity || defaultSensitivity(lane),
+    confidence: draft.confidence || (draft.rocYear || period.rocYear ? "中" : "低"),
+    source: draft.source || "AI 匯入草稿",
+    nextStep: draft.nextStep || "社工確認人事時地物與歷程面向後歸檔。",
+    actorText: draft.actorText || detectActorText(text),
+    actorIds: normalizeActorIds(draft.actorIds || matchActorIds(draft.actorText || text, stakeholders), stakeholders),
+    place: draft.place || extractPlace(text),
+    objects: draft.objects || extractObjects(text),
+    sourceText: draft.sourceText || text,
+    reviewNote: draft.reviewNote || ""
+  };
+}
+
+function normalizeRelatedLanes(values, primaryLane = "") {
+  const list = Array.isArray(values) ? values : String(values || "").split(/[、,，]/);
+  return [...new Set(list
+    .map((lane) => String(lane || "").trim())
+    .filter(Boolean)
+    .map((lane) => normalizeLane(lane))
+    .filter((lane) => lanes.includes(lane) && lane !== primaryLane))];
+}
+
 function eventStartYear(event) {
-  return Number(event.rocYear) || currentRocYear();
+  return numberOrEmpty(event.rocYear);
 }
 
 function eventEndYear(event) {
   const start = eventStartYear(event);
+  if (!start) return "";
   if (event.ongoing) return Math.max(start, currentRocYear());
   const end = numberOrEmpty(event.endRocYear);
   return end && end >= start ? end : start;
@@ -464,16 +524,27 @@ function eventEndYear(event) {
 
 function eventIsActiveInYear(event, year) {
   const start = eventStartYear(event);
+  if (!start) return false;
   const end = eventEndYear(event);
   return year >= start && year <= end;
 }
 
 function eventPeriodText(event) {
   const start = eventStartYear(event);
+  if (!start) return event.ongoing ? "待補開始年（仍在持續）" : "待補時間";
   const end = eventEndYear(event);
   if (event.ongoing && end > start) return `民國 ${start} 年至今`;
   if (end > start) return `民國 ${start}-${end} 年`;
   return `民國 ${start} 年`;
+}
+
+function eventHasTimelineYear(event) {
+  return Boolean(eventStartYear(event));
+}
+
+function rocToAd(year) {
+  const rocYear = numberOrEmpty(year);
+  return rocYear ? rocYear + 1911 : "";
 }
 
 function normalizeStakeholders(items) {
@@ -500,6 +571,11 @@ function normalizeActorIds(actorIds, stakeholders = state?.stakeholders || sampl
   return filtered.length ? [...new Set(filtered)] : ["A001"];
 }
 
+function actorNamesFromIds(actorIds, stakeholders = state?.stakeholders || sampleStakeholders) {
+  const lookup = new Map(stakeholders.map((item) => [item.id, item.label]));
+  return normalizeActorIds(actorIds, stakeholders).map((id) => lookup.get(id) || id).join("、");
+}
+
 function normalizeCompareActorIds(actorIds, primaryActorId, stakeholders = state?.stakeholders || sampleStakeholders) {
   const validIds = new Set(stakeholders.map((item) => item.id));
   const ids = Array.isArray(actorIds) ? actorIds : [];
@@ -507,8 +583,7 @@ function normalizeCompareActorIds(actorIds, primaryActorId, stakeholders = state
 }
 
 function stakeholderNames(actorIds) {
-  const lookup = new Map(state.stakeholders.map((item) => [item.id, item.label]));
-  return normalizeActorIds(actorIds).map((id) => lookup.get(id) || id).join("、");
+  return actorNamesFromIds(actorIds, state.stakeholders);
 }
 
 function stakeholderLabel(actorId) {
@@ -554,7 +629,11 @@ function renderStakeholderList() {
       </div>
       <span class="badge ${item.sensitivity === "高度敏感" || item.sensitivity === "不可外部分享" ? "red" : "amber"}">${esc(item.sensitivity)}</span>
       <p class="full">${esc(item.notes || "尚未補充同住或照顧脈絡。")}</p>
-      ${item.id === "A001" ? "" : `<button type="button" data-delete-stakeholder="${esc(item.id)}">移除</button>`}
+      ${item.id === "A001" ? "" : `
+        <div class="button-row full">
+          <button class="neutral-action" type="button" data-edit-stakeholder="${esc(item.id)}">編輯</button>
+          <button class="danger-action" type="button" data-delete-stakeholder="${esc(item.id)}">移除</button>
+        </div>`}
     </article>
   `).join("");
 }
@@ -597,7 +676,7 @@ function eventMatchesTimelineFilters(event) {
 function filteredTimelineEvents() {
   return state.events
     .filter(eventMatchesTimelineFilters)
-    .sort((a, b) => Number(a.rocYear) - Number(b.rocYear) || String(a.id).localeCompare(String(b.id)));
+    .sort((a, b) => (eventStartYear(a) || 999) - (eventStartYear(b) || 999) || String(a.id).localeCompare(String(b.id)));
 }
 
 function renderTimelineFilters() {
@@ -642,9 +721,10 @@ function renderTimelineFilters() {
 function renderTimeline() {
   const chart = $("#timelineChart");
   const visibleEvents = filteredTimelineEvents();
+  const chartEvents = visibleEvents.filter(eventHasTimelineYear);
   const policyEvents = state.showContextTimeline ? contextTimelineRows : [];
   const years = [
-    ...visibleEvents.flatMap((e) => [eventStartYear(e), eventEndYear(e)]),
+    ...chartEvents.flatMap((e) => [eventStartYear(e), eventEndYear(e)]),
     ...policyEvents.map((e) => Number(e.rocYear))
   ].filter(Boolean);
   const min = Math.min(...years, 75);
@@ -657,9 +737,15 @@ function renderTimeline() {
   html += span.map((year) => `<div class="timeline-cell timeline-head">${label(year)}</div>`).join("");
   for (const lane of laneRows) {
     html += `<div class="timeline-cell lane-label">${lane}</div>`;
+    const laneEvents = chartEvents
+      .filter((event) => normalizeLane(event.lane) === lane)
+      .sort((a, b) => eventStartYear(a) - eventStartYear(b) || String(a.id).localeCompare(String(b.id), "zh-Hant"));
     for (const year of span) {
-      const events = visibleEvents.filter((e) => normalizeLane(e.lane) === lane && eventIsActiveInYear(e, year));
-      html += `<div class="timeline-cell">${events.map((event) => eventStartYear(event) === year ? eventPill(event) : durationMarker(event)).join("")}</div>`;
+      const markers = laneEvents.map((event) => {
+        if (!eventIsActiveInYear(event, year)) return `<div class="duration-spacer" aria-hidden="true"></div>`;
+        return eventStartYear(event) === year ? eventPill(event) : durationMarker(event);
+      }).join("");
+      html += `<div class="timeline-cell timeline-track-cell">${markers}</div>`;
     }
   }
   if (state.showContextTimeline) {
@@ -683,7 +769,12 @@ function eventPill(event) {
 function durationMarker(event) {
   const classes = ["duration-marker", laneClass(event.lane)];
   if (state.selectedEventId === event.id) classes.push("active");
-  return `<button type="button" class="${classes.join(" ")}" data-open-event="${esc(event.id)}" title="${esc(`${event.title}：${eventPeriodText(event)}`)}"><span>${esc(event.ongoing ? "持續" : "期間")}</span></button>`;
+  return `<button type="button" class="${classes.join(" ")}" data-open-event="${esc(event.id)}" title="${esc(`${event.title}：${eventPeriodText(event)}`)}"><span>${esc(durationLabel(event))}</span></button>`;
+}
+
+function durationLabel(event) {
+  const title = String(event.title || normalizeLane(event.lane)).replace(/\s+/g, "").slice(0, 7);
+  return `${title || "延續"}${event.ongoing ? " 至今" : " 延續"}`;
 }
 
 function policyPill(event) {
@@ -711,7 +802,8 @@ function renderTimelineEventList() {
   if (!target) return;
   const events = filteredTimelineEvents();
   const counter = $("#timelineEventCount");
-  if (counter) counter.textContent = `${events.length}筆`;
+  const missingTimeCount = events.filter((event) => !eventHasTimelineYear(event)).length;
+  if (counter) counter.textContent = missingTimeCount ? `${events.length}筆，${missingTimeCount}筆待補時間` : `${events.length}筆`;
   if (!events.length) {
     target.innerHTML = `<div class="field-note">目前篩選條件下沒有事件。可調整人物、關聯方式或歷程分類。</div>`;
     return;
@@ -728,6 +820,7 @@ function renderTimelineEventList() {
               <span>${esc(eventPeriodText(event))}${event.age ? ` / ${esc(event.age)}歲` : ""}</span>
               <strong>${esc(event.title)}</strong>
               <span class="actor-chip-row">${actorChips(event.actorIds)}</span>
+              ${eventHasTimelineYear(event) ? "" : `<span class="missing-time-note">未放入視覺時間軸</span>`}
             </button>
             ${state.selectedEventId === event.id ? eventInlinePanel(event) : ""}
           </div>
@@ -747,6 +840,10 @@ function eventInlinePanel(event) {
       <dl>
         <dt>期間</dt><dd>${esc(eventPeriodText(event))}${event.age ? ` / ${esc(event.age)}歲` : ""}</dd>
         <dt>同住人口</dt><dd>${actorChips(event.actorIds)}</dd>
+        ${event.actorText ? `<dt>辨識人物</dt><dd>${esc(event.actorText)}</dd>` : ""}
+        ${event.relatedLanes?.length ? `<dt>相關歷程</dt><dd>${esc(event.relatedLanes.join("、"))}</dd>` : ""}
+        ${event.extraTags ? `<dt>補充標籤</dt><dd>${esc(event.extraTags)}</dd>` : ""}
+        ${event.place || event.objects ? `<dt>時地物</dt><dd>${esc([event.place, event.objects].filter(Boolean).join(" / "))}</dd>` : ""}
         <dt>摘要</dt><dd>${esc(event.fact || "待補事件摘要")}</dd>
         <dt>影響</dt><dd>${esc(event.impact || "待補脈絡影響")}</dd>
         <dt>待釐清</dt><dd>${esc(event.unknowns || "待補待釐清")}</dd>
@@ -780,6 +877,12 @@ function inlineEventForm(event) {
         <label class="full">事件標題<input name="title" required value="${esc(event.title || "")}" /></label>
         <label class="full">事件事實<textarea name="fact" rows="3">${esc(event.fact || "")}</textarea></label>
         <label class="full">案主說法<textarea name="voice" rows="2">${esc(event.voice || "")}</textarea></label>
+        <label>辨識人物<input name="actorText" value="${esc(event.actorText || "")}" /></label>
+        <label>地點/窗口<input name="place" value="${esc(event.place || "")}" /></label>
+        <label>金額/文件/資源<input name="objects" value="${esc(event.objects || "")}" /></label>
+        <label>補充標籤<input name="extraTags" value="${esc(event.extraTags || "")}" /></label>
+        <label class="full">相關歷程面向<input name="relatedLanes" value="${esc((event.relatedLanes || []).join("、"))}" placeholder="可用頓號分隔；六大主分類仍以歷程面向為準" /></label>
+        <label class="full">原文摘錄<textarea name="sourceText" rows="2">${esc(event.sourceText || "")}</textarea></label>
         <label class="full">脈絡影響<textarea name="impact" rows="2">${esc(event.impact || "")}</textarea></label>
         <label class="full">待釐清<textarea name="unknowns" rows="2">${esc(event.unknowns || "")}</textarea></label>
       </div>
@@ -805,6 +908,9 @@ function renderEventsTable() {
           <strong>${esc(e.title)}</strong>
           <span>${esc(e.fact)}</span>
           <span><em>同住人口</em> ${esc(stakeholderNames(e.actorIds))}</span>
+          ${e.relatedLanes?.length ? `<span><em>相關歷程</em> ${esc(e.relatedLanes.join("、"))}</span>` : ""}
+          ${e.extraTags ? `<span><em>補充標籤</em> ${esc(e.extraTags)}</span>` : ""}
+          ${e.place || e.objects ? `<span><em>時地物</em> ${esc([e.place, e.objects].filter(Boolean).join(" / "))}</span>` : ""}
           <span><em>影響</em> ${esc(e.impact || "待補")}</span>
           <span><em>待釐清</em> ${esc(e.unknowns || "待補")}</span>
         </div>
@@ -833,28 +939,155 @@ function eventDraftCard(draft, index) {
   const laneOptions = lanes.map((lane) => `<option ${lane === draft.lane ? "selected" : ""}>${esc(lane)}</option>`).join("");
   const sensitivity = ["一般", "內部", "高度敏感", "不可外部分享"].map((value) => `<option ${value === draft.sensitivity ? "selected" : ""}>${value}</option>`).join("");
   const confidence = ["低", "中", "高"].map((value) => `<option ${value === draft.confidence ? "selected" : ""}>${value}</option>`).join("");
+  const warnings = draftReviewWarnings(draft).map((warning) => `<li>${esc(warning)}</li>`).join("");
+  const nextEventDraftIndex = state.drafts.findIndex((item, candidateIndex) => candidateIndex > index && item.type === "event");
   return `
     <article class="draft-card" data-draft-card="${index}">
-      <h3>事件草稿 ${esc(draft.title || "未命名")}</h3>
+      <div class="draft-card-head">
+        <h3>歸檔前確認 ${esc(draft.title || "未命名")}</h3>
+        <span class="badge ${warnings ? "amber" : ""}">${warnings ? "需確認" : "可確認"}</span>
+      </div>
+      ${warnings ? `<ul class="draft-warnings">${warnings}</ul>` : ""}
+      <dl class="evidence-grid">
+        <dt>原文依據</dt><dd>${esc(draft.sourceText || draft.fact || "待補原文依據")}</dd>
+        <dt>辨識人物</dt><dd>${esc(draft.actorText || "待確認")}</dd>
+        <dt>金額/文件/資源</dt><dd>${esc(draft.objects || "無明確線索")}</dd>
+        <dt>地點/窗口</dt><dd>${esc(draft.place || "無明確線索")}</dd>
+      </dl>
+      ${draft.rocYear ? "" : `<div class="draft-time-note"><strong>待補時間</strong><span>歸檔後會留在事件清單與 Excel，不會放進視覺時間軸；補上開始民國年後才會進入時間軸。</span></div>`}
+      ${draftActorAssist(draft)}
       <div class="draft-grid">
         <label>開始民國年<input data-draft-field="rocYear" value="${esc(draft.rocYear || "")}" /></label>
         <label>結束民國年<input data-draft-field="endRocYear" value="${esc(draft.endRocYear || "")}" /></label>
         <label>案主年齡<input data-draft-field="age" value="${esc(draft.age || "")}" /></label>
-        <label>歷程面向<select data-draft-field="lane">${laneOptions}</select></label>
+        <label>主歷程面向<select data-draft-field="lane">${laneOptions}</select></label>
         <label class="toggle-row inline-toggle"><input type="checkbox" data-draft-field="ongoing" ${draft.ongoing ? "checked" : ""} /><span>仍在持續</span></label>
         <label>敏感度<select data-draft-field="sensitivity">${sensitivity}</select></label>
         <label>信心<select data-draft-field="confidence">${confidence}</select></label>
+        <label>辨識人物<input data-draft-field="actorText" value="${esc(draft.actorText || "")}" placeholder="例如：案主、案母、案父" /></label>
+        <label>地點/窗口<input data-draft-field="place" value="${esc(draft.place || "")}" placeholder="例如：租屋處、戶籍地、社福窗口" /></label>
+        <label>金額/文件/資源<input data-draft-field="objects" value="${esc(draft.objects || "")}" placeholder="例如：5000元、中低收入戶、債務清冊" /></label>
+        <label>補充標籤<input data-draft-field="extraTags" value="${esc(draft.extraTags || "")}" placeholder="先記錄想新增的分類，不影響六大主分類" /></label>
         <label class="full">事件標題<input data-draft-field="title" value="${esc(draft.title || "")}" /></label>
         <label class="full">事件事實<textarea data-draft-field="fact" rows="3">${esc(draft.fact || "")}</textarea></label>
         <label class="full">案主說法<textarea data-draft-field="voice" rows="2">${esc(draft.voice || "")}</textarea></label>
         <label class="full">脈絡影響<textarea data-draft-field="impact" rows="2">${esc(draft.impact || "")}</textarea></label>
         <label class="full">待釐清<textarea data-draft-field="unknowns" rows="2">${esc(draft.unknowns || "")}</textarea></label>
+        <label class="full">原文摘錄<textarea data-draft-field="sourceText" rows="2">${esc(draft.sourceText || "")}</textarea></label>
       </div>
+      <fieldset class="option-group">
+        <legend>確認相關同住人口</legend>
+        <div class="choice-grid compact">${draftActorOptions(draft)}</div>
+      </fieldset>
+      <fieldset class="option-group">
+        <legend>相關歷程面向（選填，可複選）</legend>
+        <div class="choice-grid compact">${relatedLaneOptions(draft)}</div>
+      </fieldset>
       <div class="draft-actions">
-        <button type="button" data-confirm-draft="${index}">確認加入時間軸</button>
+        <button type="button" data-split-draft="${index}">拆成兩筆</button>
+        ${nextEventDraftIndex > -1 ? `<button type="button" data-merge-next-draft="${index}" data-next-draft="${nextEventDraftIndex}">與下一筆合併</button>` : ""}
+        <button type="button" data-confirm-draft="${index}">確認歸檔到時間軸</button>
         <button type="button" data-discard-draft="${index}">略過</button>
       </div>
     </article>`;
+}
+
+function draftActorAssist(draft) {
+  const labels = unlinkedActorLabels(draft);
+  if (!labels.length) return "";
+  return `
+    <div class="draft-assist">
+      <strong>人物待處理</strong>
+      ${labels.map((label) => {
+        const candidates = stakeholderCandidatesForActorLabel(label);
+        const linkButtons = candidates.map((person) => `<button type="button" data-link-draft-actor="${esc(person.id)}">連到「${esc(person.label)}」</button>`).join("");
+        return `
+          <div class="draft-assist-item">
+            <span>${esc(label)} 尚未是同住人口</span>
+            <div class="button-row">
+              <button type="button" data-add-draft-actor="${esc(label)}">新增「${esc(label)}」並勾選</button>
+              ${linkButtons}
+            </div>
+          </div>`;
+      }).join("")}
+    </div>`;
+}
+
+function unlinkedActorLabels(draft) {
+  const labels = String(draft.actorText || "").split(/[、,，]/).map((item) => item.trim()).filter(Boolean);
+  return [...new Set(labels)].filter((label) => {
+    if (label === "案主本人") return false;
+    return !state.stakeholders.some((person) => person.label === label);
+  });
+}
+
+function stakeholderCandidatesForActorLabel(label) {
+  const relation = suggestedRelationForActorLabel(label);
+  if (!relation) return [];
+  return state.stakeholders.filter((person) => {
+    if (person.id === "A001") return false;
+    if (/案父|父親|爸爸/.test(label) && /案母|母親|媽媽/.test(person.label)) return false;
+    if (/案母|母親|媽媽/.test(label) && /案父|父親|爸爸/.test(person.label)) return false;
+    const text = `${person.label} ${person.relation}`;
+    return text.includes(relation) || (relation === "父母" && /父母|親屬|同住親屬/.test(text));
+  }).slice(0, 2);
+}
+
+function suggestedRelationForActorLabel(label) {
+  if (/案母|案父|母親|父親|媽媽|爸爸/.test(label)) return "父母";
+  if (/子女|孩子|小孩|兒子|女兒/.test(label)) return "子女";
+  if (/配偶|伴侶|先生|太太|丈夫|妻子|男友|女友/.test(label)) return "配偶/伴侶";
+  if (/照顧者/.test(label)) return "主要照顧者";
+  if (/親屬|手足|哥哥|姊姊|姐姐|弟弟|妹妹/.test(label)) return "手足/親屬";
+  return "其他同住者";
+}
+
+function draftActorOptions(draft) {
+  const selected = new Set(normalizeActorIds(draft.actorIds));
+  return state.stakeholders.map((item) => `
+    <label class="choice-item">
+      <input type="checkbox" data-draft-actor value="${esc(item.id)}" ${selected.has(item.id) ? "checked" : ""} />
+      <span>${esc(item.label)}</span>
+    </label>
+  `).join("");
+}
+
+function relatedLaneOptions(draft) {
+  const selected = new Set(normalizeRelatedLanes(draft.relatedLanes, draft.lane));
+  return lanes.filter((lane) => lane !== normalizeLane(draft.lane)).map((lane) => `
+    <label class="choice-item">
+      <input type="checkbox" data-draft-related-lane value="${esc(lane)}" ${selected.has(lane) ? "checked" : ""} />
+      <span>${esc(lane)}</span>
+    </label>
+  `).join("");
+}
+
+function draftReviewWarnings(draft) {
+  if (!draft || draft.type !== "event") return [];
+  const text = [draft.sourceText, draft.fact, draft.title].filter(Boolean).join(" ");
+  const actorCount = countActorCues(text);
+  const yearCount = countYearCues(text);
+  const amountCount = countAmountCues(text);
+  const warnings = [];
+  if (!draft.rocYear) warnings.push("尚未確認事件時間；歸檔前請補民國年或確認為待補。");
+  if (actorCount > 1 || yearCount > 1 || amountCount > 1) warnings.push("原文可能包含多個人物、年份或金額；請確認是否需要拆成多筆事件。");
+  if (/案父|案母|父親|母親/.test(text) && normalizeActorIds(draft.actorIds).length === 1 && normalizeActorIds(draft.actorIds)[0] === "A001") {
+    warnings.push("辨識到案父/案母等人物，但尚未連結對應同住人口；請確認是否需新增人物或保留文字註記。");
+  }
+  const suggestedLane = detectLane(text);
+  if (suggestedLane !== normalizeLane(draft.lane)) warnings.push(`系統建議主歷程可能是「${suggestedLane}」；請確認目前分類是否正確。`);
+  if (normalizeLane(draft.lane) === "感情與家庭史" && /生活費|負債|借貸|還款|債務|5000|500萬|信用卡|金錢/.test(text)) {
+    warnings.push("此事件核心看起來偏金錢流動；若不是婚姻/交往/伴侶關係變化，主分類建議改為重大財務事件。");
+  }
+  const duplicate = state.events.find((event) => {
+    if (Number(event.rocYear) !== Number(draft.rocYear || 0)) return false;
+    if (normalizeLane(event.lane) !== normalizeLane(draft.lane)) return false;
+    const eventActors = new Set(normalizeActorIds(event.actorIds));
+    const draftActors = normalizeActorIds(draft.actorIds);
+    return draftActors.some((id) => eventActors.has(id)) && similarText(event.title, draft.title);
+  });
+  if (duplicate) warnings.push(`可能與已歸檔事件 ${duplicate.id}「${duplicate.title}」重複。`);
+  return [...new Set(warnings)];
 }
 
 function decisionDraftCard(draft, index) {
@@ -880,10 +1113,132 @@ function updateDraftFromField(target) {
   const card = target.closest("[data-draft-card]");
   if (!card) return;
   const index = Number(card.dataset.draftCard);
+  if (!Number.isInteger(index) || !state.drafts[index]) return;
+  if (target.dataset.draftActor !== undefined) {
+    state.drafts[index].actorIds = Array.from(card.querySelectorAll("[data-draft-actor]:checked")).map((input) => input.value);
+    saveState();
+    return;
+  }
+  if (target.dataset.draftRelatedLane !== undefined) {
+    state.drafts[index].relatedLanes = Array.from(card.querySelectorAll("[data-draft-related-lane]:checked")).map((input) => input.value);
+    saveState();
+    return;
+  }
   const field = target.dataset.draftField;
-  if (!Number.isInteger(index) || !field || !state.drafts[index]) return;
+  if (!field) return;
   state.drafts[index][field] = target.type === "checkbox" ? target.checked : target.value;
+  if (field === "lane") state.drafts[index].relatedLanes = normalizeRelatedLanes(state.drafts[index].relatedLanes, target.value);
   saveState();
+  if (field === "lane") render();
+}
+
+function addDraftActorAsStakeholder(index, label) {
+  const draft = state.drafts[index];
+  if (!draft || draft.type !== "event") return;
+  const existing = state.stakeholders.find((person) => person.label === label);
+  const id = existing?.id || nextId("A", state.stakeholders);
+  if (!existing) {
+    state.stakeholders.push({
+      id,
+      label,
+      relation: suggestedRelationForActorLabel(label),
+      stance: "待確認",
+      sensitivity: "內部",
+      notes: `由草稿「${draft.title || "未命名事件"}」辨識新增；請確認是否同住、曾同住或僅為關係人。`
+    });
+  }
+  linkDraftActor(index, id);
+}
+
+function linkDraftActor(index, actorId) {
+  const draft = state.drafts[index];
+  if (!draft || draft.type !== "event") return;
+  draft.actorIds = normalizeActorIds([...(draft.actorIds || []), actorId]);
+  render();
+}
+
+function splitDraft(index) {
+  const draft = state.drafts[index];
+  if (!draft || draft.type !== "event") return;
+  const pieces = splitIntakeSegments(draft.sourceText || draft.fact || "")
+    .filter((item) => item !== draft.sourceText && item !== draft.fact ? item.length >= 4 : true);
+  const firstText = pieces[0] || draft.fact || draft.sourceText || "";
+  const secondText = pieces.slice(1).join("\n") || "請在此填入從原文拆出的另一筆事件。";
+  const firstDraft = normalizeEventDraftFromSplit(draft, firstText, "拆分 1");
+  const secondDraft = normalizeEventDraftFromSplit(draft, secondText, "拆分 2");
+  state.drafts.splice(index, 1, firstDraft, secondDraft);
+  render();
+}
+
+function normalizeEventDraftFromSplit(draft, text, suffix) {
+  const cleanText = String(text || "").trim();
+  if (cleanText && !cleanText.startsWith("請在此")) {
+    const lane = detectLane(cleanText);
+    const period = extractPeriod(cleanText);
+    const actorText = detectActorText(cleanText) || draft.actorText || "";
+    return normalizeDraftRecord({
+      ...draft,
+      rocYear: period.rocYear || "",
+      endRocYear: period.endRocYear || "",
+      ongoing: Boolean(period.ongoing),
+      lane,
+      relatedLanes: suggestRelatedLanes(cleanText, lane),
+      extraTags: suggestExtraTags(cleanText, lane),
+      title: `${titleFromSentence(cleanText, lane)}（${suffix}）`,
+      fact: cleanText,
+      actorText,
+      actorIds: matchActorIds(actorText || cleanText),
+      place: extractPlace(cleanText),
+      objects: extractObjects(cleanText),
+      sourceText: cleanText,
+      confidence: period.rocYear ? draft.confidence || "中" : "低"
+    });
+  }
+  return normalizeDraftRecord({
+    ...draft,
+    rocYear: "",
+    endRocYear: "",
+    title: `${draft.title || "待確認事件"}（${suffix}）`,
+    fact: cleanText,
+    sourceText: draft.sourceText || draft.fact || "",
+    confidence: "低"
+  });
+}
+
+function mergeDraftWithNext(index, nextIndex) {
+  const draft = state.drafts[index];
+  const nextDraft = state.drafts[nextIndex];
+  if (!draft || !nextDraft || draft.type !== "event" || nextDraft.type !== "event") return;
+  const combinedText = uniqueTextList([draft.sourceText, draft.fact, nextDraft.sourceText, nextDraft.fact]).join("\n");
+  const lane = normalizeLane(draft.lane || detectLane(combinedText));
+  const merged = normalizeDraftRecord({
+    ...draft,
+    rocYear: draft.rocYear || nextDraft.rocYear || "",
+    endRocYear: draft.endRocYear || nextDraft.endRocYear || "",
+    ongoing: Boolean(draft.ongoing || nextDraft.ongoing),
+    lane,
+    relatedLanes: [...normalizeRelatedLanes(draft.relatedLanes, lane), ...normalizeRelatedLanes(nextDraft.relatedLanes, lane), normalizeLane(nextDraft.lane)].filter((item) => item !== lane),
+    extraTags: uniqueDelimitedText([draft.extraTags, nextDraft.extraTags]),
+    title: `${draft.title || "待確認事件"} / ${nextDraft.title || "待確認事件"}`.slice(0, 52),
+    fact: uniqueTextList([draft.fact, nextDraft.fact]).join("\n"),
+    actorText: uniqueDelimitedText([draft.actorText, nextDraft.actorText]),
+    actorIds: [...normalizeActorIds(draft.actorIds), ...normalizeActorIds(nextDraft.actorIds)],
+    place: uniqueDelimitedText([draft.place, nextDraft.place]),
+    objects: uniqueDelimitedText([draft.objects, nextDraft.objects]),
+    sourceText: combinedText,
+    confidence: draft.confidence === "低" || nextDraft.confidence === "低" ? "低" : draft.confidence || nextDraft.confidence || "低"
+  });
+  state.drafts.splice(nextIndex, 1);
+  state.drafts[index] = merged;
+  render();
+}
+
+function uniqueTextList(values) {
+  return [...new Set(values.map((item) => String(item || "").trim()).filter(Boolean))];
+}
+
+function uniqueDelimitedText(values) {
+  return [...new Set(values.flatMap((value) => String(value || "").split(/[、,，\n]/)).map((item) => item.trim()).filter(Boolean))].join("、");
 }
 
 function confirmDraft(index) {
@@ -907,6 +1262,12 @@ function confirmDraft(index) {
       ongoing: Boolean(draft.ongoing),
       age: Number(draft.age || 0),
       lane: normalizeLane(draft.lane),
+      relatedLanes: normalizeRelatedLanes(draft.relatedLanes, draft.lane),
+      extraTags: draft.extraTags || "",
+      place: draft.place || "",
+      objects: draft.objects || "",
+      actorText: draft.actorText || "",
+      sourceText: draft.sourceText || "",
       title: draft.title || "待補事件標題",
       fact: draft.fact || "待補事件事實",
       voice: draft.voice || "",
@@ -993,7 +1354,8 @@ function updateExportProbe() {
   probe.dataset.filteredEventCount = String(filteredTimelineEvents().length);
   probe.dataset.selectedActorCount = String(selectedTimelineActorIds().length);
   probe.dataset.policyTimelineCount = String(state.showContextTimeline ? contextTimelineRows.length : 0);
-  probe.dataset.durationEventCount = String(state.events.filter((event) => eventEndYear(event) > eventStartYear(event)).length);
+  probe.dataset.durationEventCount = String(state.events.filter((event) => eventStartYear(event) && eventEndYear(event) > eventStartYear(event)).length);
+  probe.dataset.missingTimeEventCount = String(state.events.filter((event) => !eventHasTimelineYear(event)).length);
   probe.dataset.exampleEventCount = String(state.events.filter(isExampleItem).length);
   probe.dataset.exampleStakeholderCount = String(state.stakeholders.filter(isExampleItem).length);
   probe.dataset.xlsxSize = String(blob.size);
@@ -1073,6 +1435,39 @@ function switchTab(tabName) {
   $$(".workspace").forEach((panel) => panel.classList.toggle("active", panel.id === `tab-${tabName}`));
 }
 
+function startStakeholderEdit(stakeholderId) {
+  const item = state.stakeholders.find((person) => person.id === stakeholderId);
+  const form = $("#stakeholderForm");
+  if (!item || item.id === "A001" || !form) return;
+  switchTab("stakeholders");
+  form.elements.stakeholderId.value = item.id;
+  form.elements.label.value = item.label || "";
+  form.elements.relation.value = item.relation || "其他同住者";
+  form.elements.stance.value = item.stance || "待確認";
+  form.elements.sensitivity.value = item.sensitivity || "內部";
+  form.elements.notes.value = item.notes || "";
+  const title = form.querySelector(".section-head h2");
+  if (title) title.textContent = "編輯同住人口";
+  const submit = $("#stakeholderSubmitButton");
+  if (submit) submit.textContent = "儲存同住人口";
+  const cancel = $("#cancelStakeholderEdit");
+  if (cancel) cancel.hidden = false;
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function exitStakeholderEdit() {
+  const form = $("#stakeholderForm");
+  if (!form) return;
+  form.reset();
+  if (form.elements.stakeholderId) form.elements.stakeholderId.value = "";
+  const title = form.querySelector(".section-head h2");
+  if (title) title.textContent = "新增同住人口";
+  const submit = $("#stakeholderSubmitButton");
+  if (submit) submit.textContent = "新增同住人口";
+  const cancel = $("#cancelStakeholderEdit");
+  if (cancel) cancel.hidden = true;
+}
+
 function startEventEdit(eventId) {
   const item = state.events.find((event) => event.id === eventId);
   const form = $("#eventForm");
@@ -1087,6 +1482,12 @@ function startEventEdit(eventId) {
   form.elements.title.value = item.title || "";
   form.elements.fact.value = item.fact || "";
   form.elements.voice.value = item.voice || "";
+  if (form.elements.actorText) form.elements.actorText.value = item.actorText || "";
+  if (form.elements.place) form.elements.place.value = item.place || "";
+  if (form.elements.objects) form.elements.objects.value = item.objects || "";
+  if (form.elements.extraTags) form.elements.extraTags.value = item.extraTags || "";
+  if (form.elements.relatedLanes) form.elements.relatedLanes.value = (item.relatedLanes || []).join("、");
+  if (form.elements.sourceText) form.elements.sourceText.value = item.sourceText || "";
   form.elements.impact.value = item.impact || "";
   form.elements.unknowns.value = item.unknowns || "";
   form.elements.sensitivity.value = item.sensitivity || "內部";
@@ -1108,6 +1509,11 @@ function exitEventEdit() {
   const form = $("#eventForm");
   if (form?.elements?.eventId) form.elements.eventId.value = "";
   if (form?.elements?.ongoing) form.elements.ongoing.checked = false;
+  if (form) {
+    ["actorText", "place", "objects", "extraTags", "relatedLanes", "sourceText"].forEach((name) => {
+      if (form.elements[name]) form.elements[name].value = "";
+    });
+  }
   const title = form?.querySelector(".section-head h2");
   if (title) title.textContent = "新增事件";
   const submit = $("#eventSubmitButton");
@@ -1125,6 +1531,12 @@ function eventPayloadFromForm(data, formData, existingEvent) {
     ongoing: data.ongoing === "on",
     age: Number(data.age || 0),
     lane: normalizeLane(data.lane),
+    relatedLanes: normalizeRelatedLanes(data.relatedLanes, data.lane),
+    extraTags: data.extraTags || "",
+    place: data.place || "",
+    objects: data.objects || "",
+    actorText: data.actorText || "",
+    sourceText: data.sourceText || "",
     title: data.title,
     fact: data.fact,
     voice: data.voice,
@@ -1230,17 +1642,27 @@ function bindEvents() {
   $("#stakeholderForm").addEventListener("submit", (event) => {
     event.preventDefault();
     const data = Object.fromEntries(new FormData(event.currentTarget));
-    state.stakeholders.push({
-      id: nextId("A", state.stakeholders),
+    const existingId = data.stakeholderId || "";
+    const payload = {
       label: data.label,
       relation: data.relation,
       stance: data.stance,
       sensitivity: data.sensitivity,
       notes: data.notes
-    });
-    event.currentTarget.reset();
+    };
+    if (existingId && existingId !== "A001") {
+      state.stakeholders = state.stakeholders.map((item) => item.id === existingId ? { ...item, ...payload, id: existingId } : item);
+    } else {
+      state.stakeholders.push({
+        id: nextId("A", state.stakeholders),
+        ...payload
+      });
+    }
+    exitStakeholderEdit();
     render();
   });
+
+  $("#cancelStakeholderEdit").addEventListener("click", exitStakeholderEdit);
 
   $("#eventForm").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1322,6 +1744,11 @@ function bindEvents() {
       startEventEdit(editEventId);
       return;
     }
+    const editStakeholderId = event.target?.closest?.("[data-edit-stakeholder]")?.dataset?.editStakeholder;
+    if (editStakeholderId) {
+      startStakeholderEdit(editStakeholderId);
+      return;
+    }
     const id = event.target?.dataset?.deleteEvent;
     if (id) {
       state.events = state.events.filter((item) => item.id !== id);
@@ -1383,8 +1810,32 @@ function bindEvents() {
   $("#draftList").addEventListener("input", (event) => updateDraftFromField(event.target));
   $("#draftList").addEventListener("change", (event) => updateDraftFromField(event.target));
   $("#draftList").addEventListener("click", (event) => {
-    const confirmIndex = event.target?.dataset?.confirmDraft;
-    const discardIndex = event.target?.dataset?.discardDraft;
+    const control = event.target?.closest?.("button");
+    const card = event.target?.closest?.("[data-draft-card]");
+    const cardIndex = card ? Number(card.dataset.draftCard) : NaN;
+    const confirmIndex = control?.dataset?.confirmDraft;
+    const discardIndex = control?.dataset?.discardDraft;
+    const splitIndex = control?.dataset?.splitDraft;
+    const mergeIndex = control?.dataset?.mergeNextDraft;
+    const nextDraftIndex = control?.dataset?.nextDraft;
+    const addActorLabel = control?.dataset?.addDraftActor;
+    const linkActorId = control?.dataset?.linkDraftActor;
+    if (addActorLabel && Number.isInteger(cardIndex)) {
+      addDraftActorAsStakeholder(cardIndex, addActorLabel);
+      return;
+    }
+    if (linkActorId && Number.isInteger(cardIndex)) {
+      linkDraftActor(cardIndex, linkActorId);
+      return;
+    }
+    if (splitIndex !== undefined) {
+      splitDraft(Number(splitIndex));
+      return;
+    }
+    if (mergeIndex !== undefined) {
+      mergeDraftWithNext(Number(mergeIndex), Number(nextDraftIndex));
+      return;
+    }
     if (confirmIndex !== undefined) confirmDraft(Number(confirmIndex));
     if (discardIndex !== undefined) {
       state.drafts.splice(Number(discardIndex), 1);
@@ -1464,7 +1915,7 @@ function normalizeAnalysisDrafts(analysis, fallbackText) {
 
 function normalizeEventDraft(item) {
   if (!item) return null;
-  const text = [item.title, item.fact, item.voice].join(" ");
+  const text = [item.sourceText, item.title, item.fact, item.voice].join(" ");
   const lane = normalizeLane(item.lane || detectLane(text));
   const period = extractPeriod(text);
   return {
@@ -1474,6 +1925,8 @@ function normalizeEventDraft(item) {
     ongoing: Boolean(item.ongoing || period.ongoing),
     age: item.age || "",
     lane,
+    relatedLanes: normalizeRelatedLanes(item.relatedLanes, lane),
+    extraTags: item.extraTags || "",
     title: item.title || "待確認事件",
     fact: item.fact || "",
     voice: item.voice || "",
@@ -1482,7 +1935,12 @@ function normalizeEventDraft(item) {
     sensitivity: item.sensitivity || defaultSensitivity(lane),
     confidence: item.confidence || "低",
     source: "AI 匯入草稿",
-    nextStep: "社工確認後加入；必要時補來源與佐證。"
+    nextStep: "社工確認人事時地物與歷程面向後歸檔。",
+    actorText: item.actorText || detectActorText(text),
+    actorIds: matchActorIds(item.actorText || text),
+    place: item.place || extractPlace(text),
+    objects: item.objects || extractObjects(text),
+    sourceText: item.sourceText || item.fact || text
   };
 }
 
@@ -1500,18 +1958,15 @@ function normalizeDecisionDraft(item) {
 }
 
 function localSemanticDrafts(text) {
-  const sentences = String(text)
-    .replace(/\s+/g, " ")
-    .split(/(?<=[。！？!?])|\n|；|;/)
-    .map((item) => item.trim())
-    .filter((item) => item.length >= 8);
-  const eventLike = sentences.filter(isUsefulEventSentence);
-  const selected = (eventLike.length ? eventLike : sentences).slice(0, 8);
+  const segments = splitIntakeSegments(text);
+  const eventLike = segments.filter(isUsefulEventSentence);
+  const selected = (eventLike.length ? eventLike : segments).slice(0, 10);
   if (!selected.length) selected.push(String(text).slice(0, 140));
   const eventDrafts = selected.map((sentence) => {
     const lane = detectLane(sentence);
     const guide = guideForLane(lane);
     const period = extractPeriod(sentence);
+    const actorText = detectActorText(sentence);
     return {
       type: "event",
       rocYear: period.rocYear,
@@ -1519,6 +1974,8 @@ function localSemanticDrafts(text) {
       ongoing: period.ongoing,
       age: extractAge(sentence),
       lane,
+      relatedLanes: suggestRelatedLanes(sentence, lane),
+      extraTags: suggestExtraTags(sentence, lane),
       title: titleFromSentence(sentence, lane),
       fact: sentence,
       voice: extractVoice(sentence),
@@ -1527,7 +1984,12 @@ function localSemanticDrafts(text) {
       sensitivity: defaultSensitivity(lane),
       confidence: period.rocYear ? "中" : "低",
       source: "初步整理草稿",
-      nextStep: "社工確認後加入；必要時補來源與佐證。"
+      nextStep: "社工確認人事時地物與歷程面向後歸檔。",
+      actorText,
+      actorIds: matchActorIds(actorText || sentence),
+      place: extractPlace(sentence),
+      objects: extractObjects(sentence),
+      sourceText: sentence
     };
   });
   const decisionDrafts = /選擇|決定|是否|要不要|協商|搬|工作|繳|還款|借|轉介|申請/.test(text)
@@ -1549,18 +2011,19 @@ function isUsefulEventSentence(sentence) {
   const hasPeriod = Boolean(extractPeriod(value).rocYear || extractRocYear(value));
   if (hasPeriod) return true;
   if (/^(案主說|需要確認|需確認|目前需要釐清|待確認|是否先|如何在)/.test(value)) return false;
-  const hasDomain = /居住|租屋|搬|工作|就學|伴侶|婚|孩子|照顧|就醫|疾病|健康|低收|補助|社工|資源|卡債|借貸|還款|協商/.test(value);
-  const hasAction = /改變|轉換|中斷|申請|延遲|增加|下降|搬遷|出生|同住|分居|離婚|就醫|借住|轉介|催收|付款|繳存/.test(value);
+  if (extractObjects(value)) return true;
+  const hasDomain = /居住|租屋|搬|工作|就學|伴侶|婚|孩子|照顧|就醫|疾病|健康|低收|補助|社工|資源|卡債|借貸|還款|協商|生活費|負債|債務|金錢/.test(value);
+  const hasAction = /改變|轉換|中斷|申請|延遲|增加|下降|搬遷|出生|同住|分居|離婚|就醫|借住|轉介|催收|付款|繳存|提供|支付|支援|負擔|代繳|要求|處理|請假/.test(value);
   return hasDomain && hasAction;
 }
 
 function detectLane(text) {
   const value = String(text || "");
   const rules = [
-    ["重大財務事件", /卡債|信用卡|債|借|貸款|錢莊|欠|利息|協商|還款|帳戶|存款|保險|財務|金錢|繳/],
-    ["社會資源使用歷程", /低收|中低收|急難|補助|社工|政府|方案|轉介|法扶|網絡|服務|資格|文件|兒少教育發展帳戶/],
+    ["社會資源使用歷程", /低收入戶|中低收入戶|低收|中低收|急難|補助|社工|政府|方案|轉介|法扶|網絡|服務|資格|文件|兒少教育發展帳戶|租金補貼|社宅/],
+    ["重大財務事件", /生活費|卡債|信用卡|債|負債|借|借款|借貸|貸款|錢莊|欠|利息|協商|還款|帳戶|存款|保險|財務|金錢|代繳|繳款|催收|\d+(?:\.\d+)?\s*(?:萬元|萬|元|塊)/],
     ["疾病與身心健康史", /疾病|生病|就醫|醫院|精神|憂鬱|焦慮|健康|長照|照顧者|失能|醫療/],
-    ["感情與家庭史", /感情|交往|婚|離婚|伴侶|先生|太太|孩子|小孩|扶養|家暴|親職|家庭/],
+    ["感情與家庭史", /感情|交往|婚姻|結婚|離婚|分居|再婚|伴侶|先生|太太|配偶|同居|分手|親密關係/],
     ["就業與就學史", /工作|就業|就學|學校|學歷|職訓|薪水|收入|失業|工時|留停/],
     ["居住遷移史", /居住|租屋|搬家|搬|遷|住宿|戶籍|房租|安置|中途之家|住所/]
   ];
@@ -1617,6 +2080,135 @@ function extractAge(text) {
 function extractVoice(text) {
   const match = String(text || "").match(/[「『\"]([^」』\"]{3,80})[」』\"]/);
   return match ? match[1] : "";
+}
+
+function splitIntakeSegments(text) {
+  const normalized = String(text || "")
+    .replace(/\r/g, "\n")
+    .replace(/([。！？!?；;])/g, "$1\n")
+    .replace(/\s+(?=(?:個案|案主|案母|案父|母親|父親|子女|孩子|配偶|伴侶|先生|太太|主要照顧者))/g, "\n");
+  return normalized
+    .split(/\n+/)
+    .flatMap(splitCompoundSegment)
+    .map((item) => item.replace(/\s+/g, " ").trim())
+    .filter((item) => item.length >= 4);
+}
+
+function splitCompoundSegment(segment) {
+  const value = String(segment || "").trim();
+  return value ? [value] : [];
+}
+
+function detectActorText(text) {
+  const value = String(text || "");
+  const labels = actorCueMap
+    .filter(([, pattern]) => pattern.test(value))
+    .map(([label]) => label);
+  return [...new Set(labels)].join("、");
+}
+
+function matchActorIds(text, stakeholders = state?.stakeholders || sampleStakeholders) {
+  const value = String(text || "");
+  const detected = detectActorText(value).split("、").filter(Boolean);
+  const ids = [];
+  for (const person of stakeholders) {
+    const label = String(person.label || "");
+    const relation = String(person.relation || "");
+    if (value.includes(label) || detected.includes(label) || detected.some((item) => relation.includes(item) || item.includes(relation))) {
+      ids.push(person.id);
+    }
+  }
+  if (/案主|個案|本人|服務對象/.test(value) && stakeholders.some((item) => item.id === "A001")) ids.push("A001");
+  return [...new Set(ids)].filter(Boolean);
+}
+
+function extractPlace(text) {
+  const value = String(text || "");
+  const patterns = [
+    /(?:戶籍地|戶籍|實際居住地|租屋處|住處|安置處所|中途之家|庇護所|學校|醫院|診所|社福中心|社會局|就服站|銀行|法院|調解會|里辦公處|公所|區公所)/g,
+    /(?:在|於)([^，。；;、\s]{2,12}(?:家|處|地|中心|醫院|學校|銀行|法院|公所))/g
+  ];
+  const found = [];
+  for (const pattern of patterns) {
+    for (const match of value.matchAll(pattern)) found.push(match[1] || match[0]);
+  }
+  return [...new Set(found)].slice(0, 5).join("、");
+}
+
+function extractObjects(text) {
+  const value = String(text || "");
+  const found = [];
+  for (const match of value.matchAll(moneyPattern)) found.push(match[1] || match[0]);
+  const documentPattern = /(?:債務清冊|借據|帳戶|存摺|薪資單|租約|診斷證明|轉介單|公文|補助資格|中低收入戶|低收入戶|租金補貼|兒少教育發展帳戶)/g;
+  for (const match of value.matchAll(documentPattern)) found.push(match[0]);
+  return [...new Set(found)].slice(0, 8).join("、");
+}
+
+function suggestRelatedLanes(text, primaryLane) {
+  const value = String(text || "");
+  const lane = normalizeLane(primaryLane);
+  const related = [];
+  const add = (name) => {
+    const normalized = normalizeLane(name);
+    if (normalized !== lane) related.push(normalized);
+  };
+  if (/(?:生活費|負債|借|貸款|還款|債務|金錢|帳戶|\d+(?:\.\d+)?\s*(?:萬元|萬|元|塊))/.test(value)) add("重大財務事件");
+  if (/(?:低收入戶|中低收入戶|低收|中低收|補助|社工|轉介|法扶|租金補貼|兒少教育發展帳戶|社宅)/.test(value)) add("社會資源使用歷程");
+  if (/(?:工作|就業|就學|學校|收入來源|收入減少|收入中斷|收入不穩|職訓|失業|薪水)/.test(value)) add("就業與就學史");
+  if (/(?:居住|租屋|搬|戶籍|房租|安置|同住|借住)/.test(value)) add("居住遷移史");
+  if (/(?:疾病|就醫|醫院|健康|精神|長照|照顧者)/.test(value)) add("疾病與身心健康史");
+  if (/(?:感情|交往|婚姻|結婚|離婚|分居|伴侶|配偶|先生|太太|同居|分手)/.test(value)) add("感情與家庭史");
+  return [...new Set(related)];
+}
+
+function suggestExtraTags(text, primaryLane) {
+  const value = String(text || "");
+  const tags = [];
+  const add = (pattern, tag) => {
+    if (pattern.test(value)) tags.push(tag);
+  };
+  add(/生活費|每月.*元|每月.*萬/, "親友金錢支援");
+  add(/負債|債務|欠|借貸|信用卡|卡債/, "債務壓力");
+  add(/中低收入戶|低收入戶|低收|中低收/, "福利身分");
+  add(/租金補貼|房租|租屋/, "居住成本");
+  add(/兒少教育發展帳戶|教育帳戶|孩子/, "兒少資產形成");
+  add(/社工|轉介|法扶|公所|社福/, "網絡資源");
+  add(/工作|就業|失業|薪水|收入來源|收入減少|收入中斷|收入不穩/, "收入穩定度");
+  add(/婚姻|離婚|分居|伴侶|配偶|交往/, "親密關係");
+  if (normalizeLane(primaryLane) !== "感情與家庭史" && /案父|案母|母親|父親|親屬/.test(value)) tags.push("家庭支持/壓力");
+  return [...new Set(tags)].join("、");
+}
+
+function countActorCues(text) {
+  return detectActorText(text).split("、").filter(Boolean).length;
+}
+
+function countYearCues(text) {
+  const value = String(text || "");
+  const matches = [
+    ...value.matchAll(/(?:民國\s*)?\d{2,3}\s*年/g),
+    ...value.matchAll(/(?:19|20)\d{2}\s*年/g)
+  ];
+  return new Set(matches.map((match) => match[0].replace(/\s/g, ""))).size;
+}
+
+function countAmountCues(text) {
+  return new Set([...String(text || "").matchAll(moneyPattern)].map((match) => match[1] || match[0])).size;
+}
+
+function similarText(a, b) {
+  const left = normalizeComparableText(a);
+  const right = normalizeComparableText(b);
+  if (!left || !right) return false;
+  if (left.includes(right.slice(0, 12)) || right.includes(left.slice(0, 12))) return true;
+  const leftTokens = new Set(left.match(/[\u4e00-\u9fff]{2,}|[a-zA-Z0-9]+/g) || []);
+  const rightTokens = new Set(right.match(/[\u4e00-\u9fff]{2,}|[a-zA-Z0-9]+/g) || []);
+  const overlap = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  return overlap >= 2;
+}
+
+function normalizeComparableText(text) {
+  return String(text || "").replace(/[^\u4e00-\u9fffa-zA-Z0-9]/g, "").slice(0, 80);
 }
 
 function titleFromSentence(sentence, lane) {
@@ -1722,8 +2314,8 @@ function buildXlsx() {
     {
       name: "事件時間軸",
       rows: [
-        ["ID", "開始民國年", "結束民國年", "是否持續", "期間顯示", "開始西元年", "結束西元年", "年齡", "歷程面向", "事件標題", "事件事實", "案主說法", "相關同住人口", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
-        ...state.events.map((e) => [e.id, e.rocYear, e.endRocYear || "", e.ongoing ? "是" : "否", eventPeriodText(e), Number(e.rocYear) + 1911, eventEndYear(e) + 1911, e.age, normalizeLane(e.lane), e.title, e.fact, e.voice, stakeholderNames(e.actorIds), e.impact || "", e.unknowns || "", e.source, e.sensitivity, e.confidence, e.nextStep])
+        ["ID", "開始民國年", "結束民國年", "是否持續", "期間顯示", "開始西元年", "結束西元年", "年齡", "主要歷程面向", "相關歷程面向", "補充標籤", "事件標題", "事件事實", "案主說法", "相關同住人口", "辨識人物", "地點/窗口", "金額/文件/資源", "原文依據", "脈絡影響", "待釐清", "來源", "敏感度", "信心", "下一步"],
+        ...state.events.map((e) => [e.id, e.rocYear, e.endRocYear || "", e.ongoing ? "是" : "否", eventPeriodText(e), rocToAd(e.rocYear), rocToAd(eventEndYear(e)), e.age, normalizeLane(e.lane), (e.relatedLanes || []).join("、"), e.extraTags || "", e.title, e.fact, e.voice, stakeholderNames(e.actorIds), e.actorText || "", e.place || "", e.objects || "", e.sourceText || "", e.impact || "", e.unknowns || "", e.source, e.sensitivity, e.confidence, e.nextStep])
       ]
     },
     {
@@ -1743,10 +2335,10 @@ function buildXlsx() {
     {
       name: "待確認草稿",
       rows: [
-        ["類型", "歷程/連結事件", "開始民國年", "結束民國年", "是否持續", "標題/問題", "事實/選項", "案主說法/最大擔心", "脈絡影響", "待釐清/解讀", "信心"],
+        ["類型", "主要歷程/連結事件", "相關歷程面向", "補充標籤", "開始民國年", "結束民國年", "是否持續", "標題/問題", "事實/選項", "案主說法/最大擔心", "辨識人物", "地點/窗口", "金額/文件/資源", "原文依據", "脈絡影響", "待釐清/解讀", "信心"],
         ...state.drafts.map((draft) => draft.type === "event"
-          ? ["事件", normalizeLane(draft.lane), draft.rocYear || "", draft.endRocYear || "", draft.ongoing ? "是" : "否", draft.title, draft.fact, draft.voice, draft.impact, draft.unknowns, draft.confidence]
-          : ["決策", draft.eventId, "", "", "", draft.question, draft.options, draft.fear, "", draft.interpretation, draft.confidence || "低"])
+          ? ["事件", normalizeLane(draft.lane), (draft.relatedLanes || []).join("、"), draft.extraTags || "", draft.rocYear || "", draft.endRocYear || "", draft.ongoing ? "是" : "否", draft.title, draft.fact, draft.voice, draft.actorText || "", draft.place || "", draft.objects || "", draft.sourceText || "", draft.impact, draft.unknowns, draft.confidence]
+          : ["決策", draft.eventId, "", "", "", "", "", draft.question, draft.options, draft.fear, "", "", "", "", "", draft.interpretation, draft.confidence || "低"])
       ]
     },
     {

@@ -214,3 +214,63 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`.
   - Stable URL verification: root `200`, `app.js` contains `v0.9-test-pack-human-flow`, `robots.txt` returns `Disallow: /`, and `X-Robots-Tag: noindex, nofollow, noarchive` remains active.
   - Production API verification: `/api/extract-file` returned text extraction with `Cache-Control: no-store`; `/api/analyze` returned `local-fallback` because production has no `OPENAI_API_KEY` configured.
+
+## v0.10 Confirm-Before-Archive Optimization
+
+- Date: 2026-06-16
+- Update summary:
+  - Added a stronger draft review card before archiving: original evidence, identified people, objects/money/resources, place/window, primary history dimension, related dimensions, extra tags, and warning notes.
+  - Tightened classification rules so relationship/family history is reserved for marriage, dating, partner, separation, divorce, and intimate-relationship events; family money support, living-cost support, debt, borrowing, and repayment stay under major financial events.
+  - Improved local import splitting for multi-person, multi-year, and multi-amount notes so "case owner", "mother", and "father" events are less likely to merge into one draft.
+  - Added editable household/cohabitant records so workers can correct a role or status without deleting and recreating it.
+  - Stabilized timeline duration-event positioning by reserving a consistent track slot for each event across years.
+  - Expanded XLSX export columns for related history dimensions, extra tags, actor text, place/window, objects/resources, and source evidence.
+  - Added `test-fixtures/multi-actor-confirmation-intake.txt` for fake multi-actor confirmation testing.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser human-like verification on `http://127.0.0.1:4176/`: pasted the fake multi-actor intake, generated 6 review drafts, and confirmed one draft increased the event count from `6` to `7`.
+  - Draft classification check: case owner low/mid-income status stayed under social-resource use; mother monthly living-cost support and father debt stayed under major financial events; partner separation stayed under relationship/family history.
+  - Household-member flow: added `案母`, edited her status to `曾同住`, and confirmed the draft actor checklist included the new household member.
+  - Timeline/export check: year headers remained like `75年`; duration markers used event-specific labels with `延續` / `至今`; export probe returned sheet count `9` and non-empty XLSX blob.
+  - Mobile width around `390px`: no whole-page horizontal overflow; draft and evidence grids collapsed to one column.
+  - Console errors/warnings: none observed.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Kevin asked to optimize locally; production remains at the previous deployed version until explicit push/deploy approval.
+
+## v0.11 Review Controls For Missing Time And Draft Triage
+
+- Date: 2026-06-16
+- Update summary:
+  - Changed missing-year events so they remain in the event list and Excel but do not appear on the visual timeline until a start ROC year is confirmed.
+  - Added a visible `待補時間` note on draft cards and a `未放入視覺時間軸` note in the event list for archived events without confirmed time.
+  - Added draft controls to split an event draft into two editable drafts or merge it with the next event draft.
+  - Added one-card actor handling: unlinked people such as `案母` or `案父` can be added as household members or linked to an existing household member from the draft card.
+  - Added export-probe support for missing-time event counts and kept blank AD-year cells blank instead of showing a misleading year.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser human-like verification on `http://127.0.0.1:4177/`: imported fake multi-actor text, confirmed the no-year mother living-cost draft showed `待補時間`, added `案母` as a household member from the draft card, and archived the draft.
+  - Missing-time behavior check: the archived mother living-cost event appeared in the event list with `未放入視覺時間軸`, did not appear in the visual timeline chart, and export probe reported `missingTimeEventCount = 1`.
+  - Draft triage check: split the father debt draft into two editable event drafts, then merged it back with the next event draft while preserving source text.
+  - Export probe after missing-time archive: sheet count `9`, non-empty XLSX blob.
+  - Mobile width around `390px`: no whole-page horizontal overflow; draft action buttons wrap.
+  - Console errors/warnings: none observed.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains unchanged until Kevin explicitly asks for push/deploy.
+
+## v0.12 Warm Interface Pass
+
+- Date: 2026-06-16
+- Update summary:
+  - Added a project-local generated raster masthead asset at `assets/case-timeline-warm-desk-v1.png`.
+  - Shifted the interface from a colder dashboard feel toward a warm professional workbench: paper-like surface, soft daylight masthead, muted teal primary actions, and low-saturation history colors.
+  - Kept the tool as a working app rather than a landing page: timeline, event list, draft review, and Excel controls remain the first-screen workflow.
+  - Avoided readable fake documents, money imagery, bank-card/debt-ad cues, hospital/clinic cues, and identifiable people in the generated image.
+  - Fixed related-history normalization so empty related-history input no longer defaults to `重大財務事件`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser desktop check on `http://127.0.0.1:4178/`: masthead background asset loaded, H1 rendered, sample metrics rendered, no whole-page horizontal overflow, and console warnings/errors were empty.
+  - Browser interaction check: clicked timeline event `E001`; right-side event list selected the event and expanded its summary.
+  - Related-history fix check: after reloading the sample test pack, `E001` no longer displayed `相關歷程重大財務事件`.
+  - Browser mobile width around `390px`: no whole-page horizontal overflow; tabs and timeline use internal scroll; top actions wrap and remain visible; console warnings/errors were empty.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains unchanged until Kevin explicitly asks for push/deploy.
