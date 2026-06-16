@@ -30,7 +30,7 @@
 - [x] Tool focuses the people layer on household members/cohabitants first.
 - [x] Events and decision cards can link to related household members.
 - [x] Excel export includes a `同住人口` sheet and household-member columns.
-- [x] Timeline can filter by primary person and comparison people.
+- [x] Timeline can filter by primary person and related people.
 - [x] Multi-person timeline can show shared events or any related events.
 - [x] Clicking a timeline event opens an event summary and edit entry point.
 - [x] Timeline grid keeps full borders through empty years.
@@ -38,7 +38,7 @@
 - [x] Taiwan system background can appear as an optional reference timeline and export flag.
 - [x] Event list supports in-place summary review and quick editing without switching tabs.
 - [x] Events can record start year, end year, or ongoing status.
-- [x] Timeline shows continuing events with clickable continuation markers.
+- [x] Timeline shows multi-year or continuing events as one clickable period bar instead of repeating one marker per year.
 - [x] Excel export includes start/end/ongoing fields for events and drafts.
 - [x] Timeline year headers include `年` in ROC/AD display.
 - [x] Clicking a visible timeline event keeps page scroll position while syncing the event list selection.
@@ -57,6 +57,11 @@
 - [x] Draft actor prompts can add an unlinked person as a household member or link the draft to an existing household member.
 - [x] Interface uses a project-local generated masthead asset and warmer colors without adding readable fake case data to the image.
 - [x] Visual polish keeps timeline, event list, and draft review flows as the first-screen working surface rather than turning the app into a landing page.
+- [x] Timeline screen has direct `新增事件` and `新增同住人口` entry points.
+- [x] Per-event sensitivity is no longer presented in the main workflow; `下一步` wording is changed to `建議多確認`.
+- [x] `建議多確認` is the only visible clarification label; the content directly lists details to confirm, with `協助判斷` only in the expanded summary.
+- [x] Event list, expanded summaries, event tables, and Excel exports explicitly show `事件人物` for each event.
+- [x] Event table places `事件人物` as a standalone column between `ID` and `期間`.
 - [x] API routes return no-store JSON responses.
 - [x] Taiwan wording pass removes reader-facing `泳道`, engineering terms, and awkward field labels.
 - [x] Production URL returns `200 OK`.
@@ -70,7 +75,8 @@
 - GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
-- Current app version: `v0.12-warm-interface`
+- Local app version: `v0.18-event-people-column`
+- Current production app version: `v0.12-warm-interface`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - v0.9 verification deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`
 - Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`

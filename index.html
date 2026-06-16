@@ -42,7 +42,6 @@
         <div class="metric"><span>決策節點</span><strong id="metricDecisions">0</strong></div>
         <div class="metric green"><span>涵蓋歷程</span><strong id="metricCovered">0/6</strong></div>
         <div class="metric amber"><span>財務事件</span><strong id="metricMoney">0</strong></div>
-        <div class="metric red"><span>高度敏感</span><strong id="metricSensitive">0</strong></div>
         <div class="metric purple"><span>其他同住人口</span><strong id="metricStakeholders">0</strong></div>
         <div class="metric blue"><span>待確認</span><strong id="metricPending">0</strong></div>
       </section>
@@ -90,7 +89,7 @@
                 <span>顯示台灣制度背景參考</span>
               </label>
               <details class="person-picker">
-                <summary id="compareActorSummary">加入比較人物</summary>
+                <summary id="compareActorSummary">加入關聯人物</summary>
                 <div id="timelineCompareActorOptions" class="choice-grid compact"></div>
               </details>
               <div id="timelineFilterSummary" class="field-note"></div>
@@ -101,8 +100,14 @@
           </section>
           <section class="panel">
             <div class="section-head">
-              <h2>事件清單</h2>
-              <span id="timelineEventCount" class="mini-count"></span>
+              <div>
+                <h2>事件清單</h2>
+                <span id="timelineEventCount" class="mini-count"></span>
+              </div>
+              <div class="button-row quick-add-row" aria-label="快速新增">
+                <button class="ghost" id="addTimelineEvent" type="button">新增事件</button>
+                <button class="ghost" id="addTimelineStakeholder" type="button">新增同住人口</button>
+              </div>
             </div>
             <div id="timelineEventList" class="timeline-event-list" aria-label="依歷程與人物分類的事件清單"></div>
           </section>
@@ -167,14 +172,6 @@
                 <option>待確認</option>
               </select>
             </label>
-            <label>敏感度
-              <select name="sensitivity">
-                <option>一般</option>
-                <option selected>內部</option>
-                <option>高度敏感</option>
-                <option>不可外部分享</option>
-              </select>
-            </label>
             <label>居住/照顧脈絡<textarea name="notes" rows="3">請用角色或稱謂描述，避免填入真實姓名、地址、電話或身分證字號。</textarea></label>
             <div class="button-row">
               <button class="primary" id="stakeholderSubmitButton" type="submit">新增同住人口</button>
@@ -229,13 +226,9 @@
             <label>原文摘錄<textarea name="sourceText" rows="2" placeholder="可保留去識別化原文，方便回頭核對。"></textarea></label>
             <label>脈絡影響<textarea name="impact" rows="2">可能牽動孩子未來資產、福利資格、家庭信任與社工後續資源連結。</textarea></label>
             <label>待釐清<textarea name="unknowns" rows="2">當時收入、租金、照顧支出、是否已詢問社工或承辦窗口。</textarea></label>
-            <label>敏感度
-              <select name="sensitivity">
-                <option>一般</option>
-                <option>內部</option>
-                <option selected>高度敏感</option>
-                <option>不可外部分享</option>
-              </select>
+            <label>建議多確認
+              <textarea name="nextStep" rows="2">事件細節、當時可行選項與需要補充的證據。</textarea>
+              <span class="field-note">寫成想多了解的細節，協助後續判斷；不要寫成結論或交辦。</span>
             </label>
             <label>信心
               <select name="confidence">
@@ -259,11 +252,11 @@
                 <thead>
                   <tr>
                     <th>ID</th>
+                    <th>事件人物</th>
                     <th>期間</th>
                     <th>歷程</th>
                     <th>事件</th>
-                    <th>敏感度</th>
-                    <th>下一步</th>
+                    <th>建議多確認</th>
                     <th></th>
                   </tr>
                 </thead>

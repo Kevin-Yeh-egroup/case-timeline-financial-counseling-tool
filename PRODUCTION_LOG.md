@@ -274,3 +274,116 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Browser mobile width around `390px`: no whole-page horizontal overflow; tabs and timeline use internal scroll; top actions wrap and remain visible; console warnings/errors were empty.
 - GitHub/Vercel deployment:
   - Not performed in this update. Production remains unchanged until Kevin explicitly asks for push/deploy.
+
+## v0.13 Continuous Period Timeline And Clear Add Actions
+
+- Date: 2026-06-16
+- Update summary:
+  - Changed multi-year and ongoing events from repeated yearly continuation markers into one continuous clickable period bar spanning the event's start and end years.
+  - Kept single-year events as event cards at the event year while retaining the year grid for visual reference.
+  - Reworded timeline people controls from `比較人物` to `加入關聯人物` / `已加入人物` so the feature reads as relationship viewing rather than person comparison.
+  - Added direct `新增事件` and `新增同住人口` buttons on the timeline event-list panel so workers do not need to infer that the `事件資料` or `同住人口` tabs contain creation forms.
+- Verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser desktop check on `http://127.0.0.1:4179/`: rendered `5` continuous `.period-bar` elements, `0` old `.duration-marker` elements, and the `工作型態轉為不定時` event rendered as one 97-103 period bar.
+  - Wording check: reader-facing `比較人物` wording no longer appears; timeline summary now reads `加入關聯人物`.
+  - Quick-add check: clicking `新增事件` switched to `事件資料`, focused `開始民國年`, and showed the `新增事件` form; clicking `新增同住人口` switched to `同住人口`, focused `稱謂或角色`, and showed the `新增同住人口` form.
+  - Browser mobile width around `390px`: no whole-page horizontal overflow; tabs and timeline use internal scroll; quick-add buttons remain visible; console warnings/errors were empty.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.12-warm-interface` until Kevin explicitly asks for push/deploy.
+
+## v0.14 Confirmation Wording And No Sensitivity Presentation
+
+- Date: 2026-06-16
+- Update summary:
+  - Removed per-event `敏感度` presentation from the main workflow, including summary metrics, event forms, inline quick edit, AI draft cards, event tables, household-member cards, and timeline visual emphasis.
+  - Changed event-table and Excel wording from `下一步` to `建議多確認`.
+  - Kept internal compatibility for existing sample/local records that still carry a `sensitivity` value, but no longer asks the worker to classify each event with that field in the main workflow.
+  - Kept sharing-related judgment in the dedicated `分享前檢查` area, where social workers can decide what needs masking, consent, legal basis, or supervision before sharing.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser desktop check on `http://127.0.0.1:4179/`: summary metrics no longer include `高度敏感`; visible page text does not include `敏感度`; timeline renders `5` continuous `.period-bar` elements and `0` `.duration-marker` elements.
+  - Event data tab: table headers are `ID`, `期間`, `歷程`, `事件`, `建議多確認`; no sensitivity select or `下一步` wording appears.
+  - Household-member tab: no sensitivity select and no sensitivity badges appear.
+  - Timeline quick-edit flow: opened `E002`, entered inline editing, confirmed the inline form has no sensitivity field, saved successfully, and saw no console errors or warnings.
+  - AI import flow: pasted fake multi-year text and generated `4` editable drafts; draft cards retained `主歷程面向` classification confirmation and did not show sensitivity fields; test drafts were cleared afterward.
+  - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41211` bytes; visible page text did not include `敏感度` or `下一步`.
+  - Mobile width around `390px`: no whole-page horizontal overflow; visible metrics no longer include sensitivity wording; console errors/warnings were empty.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.12-warm-interface` until Kevin explicitly asks for push/deploy.
+
+## v0.15 Clarification Cards For Suggested Follow-Up
+
+- Date: 2026-06-16
+- Update summary:
+  - Reworked `建議多確認` from a plain table value into an event-detail clarification aid.
+  - Added `可多了解` wording for the event details worth clarifying, and `協助判斷` wording for how those details support social-work judgment.
+  - Added clarification cards in the timeline event summary and compact clarification cards in the event table.
+  - Made `建議多確認` editable from the main event form, inline quick edit, and AI draft cards.
+  - Migrated old sample/local phrases such as `確認搬遷資料...`, `補收入區間...`, and `納入下一次討論` into the new `可多了解...` tone without requiring users to reset the sample pack.
+  - Kept the wording as clarification support rather than conclusion, score, order, financial advice, or legal advice.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser desktop check on `http://127.0.0.1:4179/`: old follow-up phrases no longer appeared; timeline event summary showed `建議多確認`, `可多了解`, and `協助判斷`; timeline still rendered `5` continuous `.period-bar` elements and `0` `.duration-marker` elements.
+  - Inline quick-edit flow: opened `E002`, edited the `建議多確認` textarea, saved successfully, and confirmed the event summary updated without console errors or warnings.
+  - AI import flow: generated editable drafts from fake multi-year text; event draft cards included `建議多確認` fields whose values used `可多了解...`; test drafts were cleared afterward.
+  - Event data tab: table headers remain `ID`, `期間`, `歷程`, `事件`, `建議多確認`; the table shows `6` compact clarification cards; no `敏感度` wording appears.
+  - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41505` bytes.
+  - Mobile width around `390px`: no whole-page horizontal overflow; visible clarification cards remained readable; console errors/warnings were empty.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.12-warm-interface` until Kevin explicitly asks for push/deploy.
+
+## v0.16 Simplified Clarification Label
+
+- Date: 2026-06-16
+- Update summary:
+  - Kept `建議多確認` as the only visible clarification label because there is not currently a second status category.
+  - Removed the redundant `可多了解` sub-label from event summary cards, compact event-table cards, form defaults, and editable clarification text.
+  - Cleaned existing stored/sample values that start with `可多了解`, `可補充了解`, or `協助判斷` so the visible content becomes the actual detail to confirm.
+  - Kept `協助判斷` only as a supporting explanation in the expanded event summary, not as a status.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser desktop check on `http://127.0.0.1:4179/`: visible page text no longer included `可多了解`; `建議多確認` remained visible; expanded event summary kept `協助判斷` as supporting explanation.
+  - Inline quick-edit flow: opened `E002`, edited the `建議多確認` textarea without the `可多了解` prefix, saved successfully, and confirmed the event summary updated without console errors or warnings.
+  - AI import flow: generated editable drafts from fake multi-year text; draft `建議多確認` values did not include `可多了解`; test drafts were cleared afterward.
+  - Event data tab: table headers remain `ID`, `期間`, `歷程`, `事件`, `建議多確認`; the compact cards did not include `可多了解` or `協助判斷`.
+  - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41433` bytes.
+  - Mobile width around `390px`: no whole-page horizontal overflow; visible page text did not include `可多了解`; console errors/warnings were empty.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.12-warm-interface` until Kevin explicitly asks for push/deploy.
+
+## v0.17 Explicit Event People Labels
+
+- Date: 2026-06-16
+- Update summary:
+  - Added an explicit `事件人物` line to each timeline event-list card so workers can immediately see who the event is about.
+  - Changed expanded event summaries from `同住人口` to `事件人物` for the event-specific people view.
+  - Changed event-table detail rows from `同住人口` to `事件人物`.
+  - Changed the event timeline Excel column from `相關同住人口` to `事件人物（同住人口）`, preserving the current people source while making the event-level meaning clearer.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser desktop check on `http://127.0.0.1:4179/`: the timeline event list rendered `6` event cards and all `6` included the `事件人物` label.
+  - Event-list card check: first sample card showed `事件人物` with `案主本人` and `主要照顧者`.
+  - Expanded summary check: opened `E003`; summary showed `事件人物` with `案主本人`, `子女`, and `主要照顧者`, and no longer used `同住人口` as the event-specific label.
+  - Event data tab: table content showed `事件人物`, no longer showed `同住人口` in the event rows, and rendered `6` rows.
+  - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41445` bytes.
+  - Mobile width around `390px`: no whole-page horizontal overflow; `6` event-people rows remained visible; timeline still rendered `5` period bars and `0` old duration markers.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.12-warm-interface` until Kevin explicitly asks for push/deploy.
+
+## v0.18 Event People Table Column
+
+- Date: 2026-06-16
+- Update summary:
+  - Moved `事件人物` out of the event-detail text in the event data table.
+  - Added `事件人物` as a standalone table column between `ID` and `期間`.
+  - Kept the same chip-based person display so multi-person events remain scannable.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Browser desktop check on `http://127.0.0.1:4179/`: event data table headers rendered as `ID`, `事件人物`, `期間`, `歷程`, `事件`, `建議多確認`.
+  - First event row check: row cells rendered `E001`, then `事件人物` with `案主本人` and `主要照顧者`, then `民國 85 年`.
+  - Table duplication check: `事件` detail cell no longer repeated `事件人物`.
+  - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41445` bytes.
+  - Mobile width around `390px`: no whole-page horizontal overflow; timeline event cards still showed `6` event-people rows and `5` period bars.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.12-warm-interface` until Kevin explicitly asks for push/deploy.

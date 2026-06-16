@@ -12,7 +12,7 @@ Public-safe static web tool for Taiwan social workers, financial-health counselo
 - Excel download is generated in the browser as `.xlsx`.
 - Public prototype should use sample data only unless the responsible institution explicitly approves real-case handling.
 - Review-stage noindex controls are intentionally enabled.
-- Version `v0.12` adds a warmer tool-interface pass: a generated paper-desk timeline masthead asset, softer Taiwan social-work-friendly colors, and less industrial table/card styling while preserving the existing review and timeline workflows.
+- Version `v0.18` adds `事件人物` as its own event-table column between `ID` and `期間`, so multi-person case timelines are easier to scan.
 
 ## Safety Boundaries
 
@@ -37,7 +37,7 @@ The AI import flow creates editable drafts only. A social worker or helping prof
 - `index.html`: app shell
 - `styles.css`: responsive interface styling
 - `assets/case-timeline-warm-desk-v1.png`: generated warm desk/timeline masthead asset for the app shell
-- `app.js`: relationship timeline, household-member filters, in-list event editing, duration-event rendering, decision-card, AI import draft queue, safety-check, and XLSX export logic
+- `app.js`: relationship timeline, household-member filters, in-list event editing, continuous period-event rendering, decision-card, AI import draft queue, sharing checklist, and XLSX export logic
 - `api/analyze.js`: optional OpenAI structured analysis endpoint
 - `api/extract-file.js`: optional file text-extraction endpoint
 - `robots.txt`: review-stage search blocking hint
