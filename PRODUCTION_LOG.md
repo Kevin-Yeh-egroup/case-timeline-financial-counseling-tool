@@ -491,4 +491,7 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - In-app browser check on `http://127.0.0.1:4181/`: AI import tab showed exactly `1` textarea, label `貼上或匯入內容`, submit button `整理成待確認草稿`, and the old `文字輸入` / `待整理文字` labels were not visible in the AI import section.
   - Browser fill check: entered fake text into the merged field and confirmed the field accepted input without changing stored drafts.
 - GitHub/Vercel deployment:
-  - Not performed in this update. Production remains at `v0.22-p2-timeline-overview-decisions` until Kevin explicitly asks for push/deploy.
+  - Performed after local and browser verification on commit `a63cdb2`.
+  - Production deployment `dpl_5xRdXMmMrWBne4WtKc2jBotbE5QR` was verified at `https://case-timeline-financial-counseling.vercel.app/`.
+  - Stable URL HTTP check: returned `200`, `X-Robots-Tag: noindex, nofollow, noarchive`, expected `robots.txt`, `index.html` included `貼上或匯入內容`, and `app.js` included `v0.23-ai-input-merged`.
+  - Production browser check: AI import form showed exactly `1` textarea, label `貼上或匯入內容`, submit button `整理成待確認草稿`, and no visible `文字輸入` / `待整理文字` labels in the input form.
