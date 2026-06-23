@@ -37,6 +37,24 @@
         <span>本版聚焦居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用、重大財務事件與同住人口；所有輸入保存在本機瀏覽器，下載 Excel 時不會上傳個案資料。</span>
       </section>
 
+      <section class="start-guide" aria-label="開始整理">
+        <div class="start-guide-copy">
+          <p class="eyebrow">第一次使用建議</p>
+          <h2>先選一種方式開始整理個案歷程</h2>
+          <p>可以貼上紀錄讓 AI 先整理草稿，也可以直接新增人物或事件。AI 產生的內容會先停在待確認草稿，經社工確認人物、時間、分類與細節後才會加入時間軸。</p>
+        </div>
+        <div class="start-steps" aria-label="整理流程">
+          <span><strong>1</strong> 匯入或新增資料</span>
+          <span><strong>2</strong> 確認人事時地物</span>
+          <span><strong>3</strong> 加入時間軸</span>
+        </div>
+        <div class="start-actions" aria-label="開始操作">
+          <button class="primary" id="startAiFromGuide" type="button">貼上紀錄請 AI 整理</button>
+          <button class="ghost" id="startEventFromGuide" type="button">直接新增事件</button>
+          <button class="ghost" id="startStakeholderFromGuide" type="button">新增同住人口</button>
+        </div>
+      </section>
+
       <section class="summary-grid" aria-label="摘要指標">
         <div class="metric"><span>事件</span><strong id="metricEvents">0</strong></div>
         <div class="metric"><span>決策節點</span><strong id="metricDecisions">0</strong></div>
@@ -70,13 +88,13 @@
               </label>
             </div>
             <div class="timeline-controls" aria-label="時間軸篩選">
-              <label>主要檢視人物
+              <label>主要檢視
                 <select id="timelinePrimaryActor"></select>
               </label>
-              <label>關聯方式
+              <label>人物呈現
                 <select id="timelineMatchMode">
-                  <option value="shared">共同事件</option>
-                  <option value="related">任一相關事件</option>
+                  <option value="layered">一起呈現</option>
+                  <option value="intersection">只看共同事件</option>
                 </select>
               </label>
               <label>歷程分類
@@ -182,6 +200,7 @@
             <div class="section-head">
               <h2>同住人口列表</h2>
             </div>
+            <p class="field-note">新增後可在卡片中編輯角色、關係、同住狀態與照顧脈絡，不必刪除重建。</p>
             <div id="stakeholderList" class="stakeholder-list"></div>
           </section>
         </div>

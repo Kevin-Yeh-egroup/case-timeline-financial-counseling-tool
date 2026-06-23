@@ -12,7 +12,8 @@ Public-safe static web tool for Taiwan social workers, financial-health counselo
 - Excel download is generated in the browser as `.xlsx`.
 - Public prototype should use sample data only unless the responsible institution explicitly approves real-case handling.
 - Review-stage noindex controls are intentionally enabled.
-- Version `v0.18` adds `事件人物` as its own event-table column between `ID` and `期間`, so multi-person case timelines are easier to scan.
+- Version `v0.22` improves timeline reading: all-case overview can show every event, year and category headers stay visible while scrolling, same-category events are packed into fewer non-overlapping rows, and linked decision nodes appear directly on the timeline.
+- Version `v0.21` strengthened AI import review: mixed multi-person text is split into separate drafts, draft cards show people/event/time/place-object/classification review status, health and financial classification rules are tighter, and warning drafts ask for confirmation before archiving.
 
 ## Safety Boundaries
 
@@ -43,4 +44,5 @@ The AI import flow creates editable drafts only. A social worker or helping prof
 - `robots.txt`: review-stage search blocking hint
 - `vercel.json`: Vercel `X-Robots-Tag` noindex header
 - `RESEARCH_NOTES.md`: source-backed synthesis without republishing transcripts
+- `WIKI_CURATOR_P0_P1_CANDIDATE.md`: project-local reusable record for the P0/P1 onboarding and AI-draft review pattern
 - `test-fixtures/`: public-safe fake multi-year and multi-actor intake files for testing text/file import, draft splitting, and timeline draft generation

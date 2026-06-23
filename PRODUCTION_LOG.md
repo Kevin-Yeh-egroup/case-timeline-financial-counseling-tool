@@ -386,4 +386,89 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41445` bytes.
   - Mobile width around `390px`: no whole-page horizontal overflow; timeline event cards still showed `6` event-people rows and `5` period bars.
 - GitHub/Vercel deployment:
-  - Not performed in this update. Production remains at the previously deployed `v0.12-warm-interface` until Kevin explicitly asks for push/deploy.
+  - Performed after local verification on commit `4e5ce58`.
+  - Production deployment `dpl_3nkMA2bjz2r23TUjDtWHnWsPqJ3W` was verified at `https://case-timeline-financial-counseling.vercel.app/`.
+
+## v0.19 Layered People Timeline
+
+- Date: 2026-06-18
+- Update summary:
+  - Changed the multi-person timeline default from intersection-style matching to `一起呈現`.
+  - Migrated old saved `shared` / `related` timeline settings into the new `layered` mode so existing browser state no longer hides events after adding a person.
+  - Kept the main person's events and added people's events visible together, while marking each event as `主軸人物`, `加入人物`, or `共同事件`.
+  - Added distinct visual styles for the three relation types in the visual timeline and timeline event list.
+  - Added relation-count fields to the export probe: `primaryAxisEventCount`, `compareAxisEventCount`, and `sharedAxisEventCount`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Local preview: started `http://127.0.0.1:4179/` with a static Python server.
+  - Browser flow using sample data: selected `案主本人` as primary and added `子女`; the timeline stayed in `一起呈現`, kept `6` filtered events visible, and showed `3` `主軸人物` events plus `3` `共同事件` events.
+  - Browser flow using sample data: selected `主要照顧者` as primary and added `子女`; the event list showed all three styles at once: `2` `主軸人物`, `2` `加入人物`, and `1` `共同事件`.
+  - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41439` bytes, and relation counts matched the visible event-list classes.
+  - Mobile width around `390px`: no whole-page horizontal overflow; the event list still showed `主軸人物`, `加入人物`, and `共同事件` labels; console errors/warnings were empty.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.18-event-people-column` until Kevin explicitly asks for push/deploy.
+
+## v0.20 P0 Onboarding And Timeline Focus
+
+- Date: 2026-06-23
+- Update summary:
+  - Added a first-use start guide above the metrics with the practical flow `匯入或新增資料 -> 確認人事時地物 -> 加入時間軸`.
+  - Added guide buttons for AI import, direct event creation, and household-member creation.
+  - Connected event-list cards to the visual timeline: selecting a list item now preserves the page position, scrolls the timeline to the matching event, and briefly highlights it.
+  - Added locator attributes to visual timeline events for targeted event-list-to-timeline syncing.
+  - Strengthened multi-year and ongoing event bars with clearer continuous period styling and `時間段` / `持續至今` captions.
+  - Added a visible household-member edit hint so workers know records can be edited instead of deleted and rebuilt.
+  - Added export-probe fields for the start guide and timeline locator count.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Local preview: started `http://127.0.0.1:4181/` with a static Python server and confirmed HTTP `200`.
+  - UTF-8 HTTP content check: confirmed the start guide, visual timeline heading, and guide action buttons are present.
+  - Static P0 behavior check: confirmed guide buttons are wired, quick-add buttons are wired, event-list-to-timeline focus code exists, visual events have timeline locators, period-bar styling exists, and mobile guide breakpoints are present.
+  - Browser-use note: in-app browser navigation to the local URL was blocked by Browser Use URL policy and showed a crashed page, so full human-like browser interaction could not be completed in this turn.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.18-event-people-column` until Kevin explicitly asks for push/deploy.
+
+## v0.21 P1 Draft Review And Splitting
+
+- Date: 2026-06-23
+- Update summary:
+  - Added a draft review strip showing whether `人物`, `事件`, `時間`, `時地物`, and `分類` are ready before archiving.
+  - Strengthened local semantic splitting so mixed text with case owner, mother, father, years, amounts, and welfare status becomes separate event drafts.
+  - Added frontend post-processing for OpenAI/API drafts so a mixed single draft can still be re-split before the worker reviews it.
+  - Added explicit API prompt examples for `個案於115年取得中低收入戶`, `案母每月提供5000元生活費`, and `案父108年負債500萬`.
+  - Tightened classification rules: welfare status remains `社會資源使用歷程`, living-expense support/debt remains `重大財務事件`, and `身心科` / diagnosis / medication / outpatient terms map to `疾病與身心健康史`.
+  - Added a confirmation prompt when a draft still has warnings and the worker clicks archive.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Local semantic test: `個案於115年取得中低收入戶 案母每月提供5000元生活費 案父108年負債500萬` produced 3 event drafts with lanes `社會資源使用歷程`, `重大財務事件`, and `重大財務事件`.
+  - Health classification test: `民國78年案主身心科就診，後續持續門診用藥。` classified as `疾病與身心健康史` and preserved ongoing status.
+  - API mixed-draft repair test: a simulated OpenAI response containing the three mixed events as one draft was re-split into 3 drafts with the expected lanes.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.18-event-people-column` until Kevin explicitly asks for push/deploy.
+
+## v0.22 P2 Timeline Overview And Decision Nodes
+
+- Date: 2026-06-23
+- Update summary:
+  - Added `全案總覽（所有事件）` as a timeline view so the worker can see case-owner and added-person events together without treating the feature as person comparison.
+  - Added a distinct `全案事件` visual state across timeline events, period bars, relation tags, and event-list cards.
+  - Packed same-category events into non-overlapping rows so ended events no longer force every later event into a new row.
+  - Made timeline year headers and left-side classification labels sticky inside the timeline scroller.
+  - Added a `決策節點` timeline row that displays linked decision cards at the year of their connected event.
+  - Disabled the relation-mode select while in all-case overview because all events are already included.
+  - Added export-probe fields `caseAxisEventCount` and `timelineDecisionCount`.
+  - Added `WIKI_CURATOR_P0_P1_CANDIDATE.md` as a project-local candidate record for the reusable P0/P1 onboarding and draft-review pattern.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Wording scan for `泳道`, `比較人物`, `敏感度`, `可多了解`, and `下一步`: remaining hits are only in project documentation describing avoided terms or in the legacy clarification normalizer.
+  - VM all-case logic check: version `v0.22-p2-timeline-overview-decisions`, all-case filtered events `6`, `caseAxisEventCount = 6`, selected actors `5`, compare actors cleared, and linked decision items `3` at years `97`, `101`, and `110`.
+  - VM render check: timeline HTML included `全案事件`, `3` `.decision-marker` items, `5` `.period-bar` items, and the `決策節點` row.
+  - Local HTTP check on `http://127.0.0.1:4181/`: root returned `200`, UTF-8 HTML included the first-use guide, and `app.js` included `v0.22-p2-timeline-overview-decisions` plus `visibleTimelineDecisionItems`.
+  - In-app browser preview on `http://127.0.0.1:4181/`: page rendered `個案時間軸整理工具`, first-use guide, `5` period bars, `3` decision markers, and the `全案總覽（所有事件）` option.
+  - All-case browser flow: selected `全案總覽`, confirmed `6` event-list cards and `6` visual timeline items used the `全案事件` style, `caseAxisEventCount = 6`, `selectedActorCount = 5`, and the relation-mode select became disabled.
+  - Event-list browser flow: clicked visible `E003` from the event list and confirmed the event list card, visual timeline item, and inline summary all selected `E003`.
+  - Mobile browser check at `390px`: no whole-page horizontal overflow, first-use guide remained present, timeline scroller stayed horizontally scrollable, and `5` period bars plus `3` decision markers rendered.
+  - VM export check: XLSX MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, blob `41255` bytes, `9` sheets, `caseAxisEventCount = 6`, and `timelineDecisionCount = 3`.
+  - Download browser note: the page probe reported XLSX MIME and `41439` bytes, and VM export generated a valid XLSX blob; the in-app browser did not emit a download event for the blob URL within `10s`, with no console errors.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the previously deployed `v0.18-event-people-column` until Kevin explicitly asks for push/deploy.

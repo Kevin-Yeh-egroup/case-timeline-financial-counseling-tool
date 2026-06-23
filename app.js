@@ -1,5 +1,6 @@
-const CURRENT_STATE_VERSION = "v0.18-event-people-column";
+const CURRENT_STATE_VERSION = "v0.22-p2-timeline-overview-decisions";
 const EXAMPLE_PACKAGE_ID = "example-life-context-pack";
+const ALL_ACTORS_ID = "all";
 const lanes = ["居住遷移史", "就業與就學史", "感情與家庭史", "疾病與身心健康史", "社會資源使用歷程", "重大財務事件"];
 const policyLaneName = "台灣制度背景";
 const laneAliases = {
@@ -395,7 +396,7 @@ function defaultState() {
     yearMode: "roc",
     timelinePrimaryActorId: "A001",
     timelineCompareActorIds: [],
-    timelineMatchMode: "shared",
+    timelineMatchMode: "layered",
     timelineLaneFilter: "all",
     showContextTimeline: true,
     selectedEventId: "",
@@ -410,8 +411,10 @@ function loadState() {
       const base = defaultState();
       const stakeholders = normalizeStakeholders(saved.stakeholders || base.stakeholders);
       const validActorIds = new Set(stakeholders.map((item) => item.id));
-      const primaryActorId = validActorIds.has(saved.timelinePrimaryActorId) ? saved.timelinePrimaryActorId : "A001";
-      const compareActorIds = normalizeCompareActorIds(saved.timelineCompareActorIds, primaryActorId, stakeholders);
+      const primaryActorId = saved.timelinePrimaryActorId === ALL_ACTORS_ID
+        ? ALL_ACTORS_ID
+        : validActorIds.has(saved.timelinePrimaryActorId) ? saved.timelinePrimaryActorId : "A001";
+      const compareActorIds = primaryActorId === ALL_ACTORS_ID ? [] : normalizeCompareActorIds(saved.timelineCompareActorIds, primaryActorId, stakeholders);
       const savedLaneFilter = typeof saved.timelineLaneFilter === "string" ? saved.timelineLaneFilter : "all";
       const normalizedLaneFilter = normalizeLane(savedLaneFilter);
       const laneFilter = savedLaneFilter === "all" || lanes.includes(normalizedLaneFilter) ? (savedLaneFilter === "all" ? "all" : normalizedLaneFilter) : "all";
@@ -431,7 +434,7 @@ function loadState() {
         yearMode: saved.yearMode === "ad" ? "ad" : "roc",
         timelinePrimaryActorId: primaryActorId,
         timelineCompareActorIds: compareActorIds,
-        timelineMatchMode: saved.timelineMatchMode === "related" ? "related" : "shared",
+        timelineMatchMode: normalizeTimelineMatchMode(saved.timelineMatchMode),
         timelineLaneFilter: laneFilter,
         showContextTimeline: saved.showContextTimeline !== false,
         selectedEventId: typeof saved.selectedEventId === "string" ? saved.selectedEventId : "",
@@ -664,6 +667,10 @@ function normalizeCompareActorIds(actorIds, primaryActorId, stakeholders = state
   return [...new Set(ids.filter((id) => validIds.has(id) && id !== primaryActorId))];
 }
 
+function normalizeTimelineMatchMode(value) {
+  return value === "intersection" ? "intersection" : "layered";
+}
+
 function stakeholderNames(actorIds) {
   return actorNamesFromIds(actorIds, state.stakeholders);
 }
@@ -733,30 +740,98 @@ function renderStakeholderOptions() {
 
 function ensureTimelineFilterState() {
   const validIds = new Set(state.stakeholders.map((item) => item.id));
-  if (!validIds.has(state.timelinePrimaryActorId)) state.timelinePrimaryActorId = "A001";
-  state.timelineCompareActorIds = normalizeCompareActorIds(state.timelineCompareActorIds, state.timelinePrimaryActorId);
-  if (!["shared", "related"].includes(state.timelineMatchMode)) state.timelineMatchMode = "shared";
+  if (state.timelinePrimaryActorId !== ALL_ACTORS_ID && !validIds.has(state.timelinePrimaryActorId)) state.timelinePrimaryActorId = "A001";
+  if (state.timelinePrimaryActorId === ALL_ACTORS_ID) {
+    state.timelineCompareActorIds = [];
+  } else {
+    state.timelineCompareActorIds = normalizeCompareActorIds(state.timelineCompareActorIds, state.timelinePrimaryActorId);
+  }
+  state.timelineMatchMode = normalizeTimelineMatchMode(state.timelineMatchMode);
   if (state.timelineLaneFilter !== "all") state.timelineLaneFilter = normalizeLane(state.timelineLaneFilter);
   if (!lanes.includes(state.timelineLaneFilter) && state.timelineLaneFilter !== "all") state.timelineLaneFilter = "all";
 }
 
 function selectedTimelineActorIds() {
   ensureTimelineFilterState();
+  if (state.timelinePrimaryActorId === ALL_ACTORS_ID) return state.stakeholders.map((item) => item.id);
   return [state.timelinePrimaryActorId, ...state.timelineCompareActorIds];
 }
 
 function eventMatchesTimelineFilters(event) {
   if (state.timelineLaneFilter !== "all" && normalizeLane(event.lane) !== state.timelineLaneFilter) return false;
-  const selectedIds = selectedTimelineActorIds();
-  const eventActorIds = normalizeActorIds(event.actorIds);
-  if (state.timelineMatchMode === "related") return selectedIds.some((id) => eventActorIds.includes(id));
-  return selectedIds.every((id) => eventActorIds.includes(id));
+  if (state.timelinePrimaryActorId === ALL_ACTORS_ID) return true;
+  const relation = timelineRelationInfo(event);
+  if (state.timelineMatchMode === "intersection") return relation.kind === "shared";
+  return relation.kind !== "unrelated";
 }
 
 function filteredTimelineEvents() {
   return state.events
     .filter(eventMatchesTimelineFilters)
     .sort((a, b) => (eventStartYear(a) || 999) - (eventStartYear(b) || 999) || String(a.id).localeCompare(String(b.id)));
+}
+
+function timelineRelationInfo(event) {
+  ensureTimelineFilterState();
+  if (state.timelinePrimaryActorId === ALL_ACTORS_ID) {
+    return { kind: "case", className: "axis-case", label: "全案事件", compareIds: [] };
+  }
+  const actorIds = normalizeActorIds(event.actorIds);
+  const hasPrimary = actorIds.includes(state.timelinePrimaryActorId);
+  const compareIds = state.timelineCompareActorIds.filter((id) => actorIds.includes(id));
+  if (hasPrimary && compareIds.length) {
+    return { kind: "shared", className: "axis-shared", label: "共同事件", compareIds };
+  }
+  if (hasPrimary) {
+    return { kind: "primary", className: "axis-primary", label: "主軸人物", compareIds: [] };
+  }
+  if (compareIds.length) {
+    return { kind: "compare", className: "axis-compare", label: "加入人物", compareIds };
+  }
+  return { kind: "unrelated", className: "axis-unrelated", label: "未選人物", compareIds: [] };
+}
+
+function timelineRelationBadge(event) {
+  const relation = timelineRelationInfo(event);
+  if (relation.kind === "unrelated") return "";
+  return `<span class="timeline-relation-tag ${relation.className}">${esc(relation.label)}</span>`;
+}
+
+function timelineRelationCounts(events = filteredTimelineEvents()) {
+  return events.reduce((counts, event) => {
+    const relation = timelineRelationInfo(event);
+    if (relation.kind in counts) counts[relation.kind] += 1;
+    return counts;
+  }, { case: 0, primary: 0, compare: 0, shared: 0 });
+}
+
+function assignTimelineTracks(events) {
+  const trackEnds = [];
+  const items = events.map((event) => {
+    const start = eventStartYear(event);
+    const end = eventEndYear(event) || start;
+    let track = trackEnds.findIndex((lastEnd) => start > lastEnd);
+    if (track === -1) {
+      track = trackEnds.length;
+      trackEnds.push(end);
+    } else {
+      trackEnds[track] = end;
+    }
+    return { event, track: track + 1 };
+  });
+  return { items, trackCount: Math.max(trackEnds.length, 1) };
+}
+
+function visibleTimelineDecisionItems(chartEvents) {
+  const visibleEventIds = new Set(chartEvents.map((event) => event.id));
+  return state.decisions
+    .map((decision) => {
+      const event = state.events.find((item) => item.id === decision.eventId);
+      if (!event || !visibleEventIds.has(event.id) || !eventHasTimelineYear(event)) return null;
+      return { decision, event, year: eventStartYear(event) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.year - b.year || String(a.decision.id).localeCompare(String(b.decision.id), "zh-Hant"));
 }
 
 function renderTimelineFilters() {
@@ -766,10 +841,16 @@ function renderTimelineFilters() {
   const laneFilter = $("#timelineLaneFilter");
   const showContext = $("#showContextTimeline");
   if (primary) {
-    primary.innerHTML = state.stakeholders.map((item) => `<option value="${esc(item.id)}">${esc(item.label)}</option>`).join("");
+    primary.innerHTML = [
+      `<option value="${ALL_ACTORS_ID}">全案總覽（所有事件）</option>`,
+      ...state.stakeholders.map((item) => `<option value="${esc(item.id)}">${esc(item.label)}</option>`)
+    ].join("");
     primary.value = state.timelinePrimaryActorId;
   }
-  if (mode) mode.value = state.timelineMatchMode;
+  if (mode) {
+    mode.value = state.timelineMatchMode;
+    mode.disabled = state.timelinePrimaryActorId === ALL_ACTORS_ID;
+  }
   if (laneFilter) {
     laneFilter.innerHTML = [`<option value="all">全部歷程</option>`, ...lanes.map((lane) => `<option value="${esc(lane)}">${esc(lane)}</option>`)].join("");
     laneFilter.value = state.timelineLaneFilter;
@@ -778,23 +859,37 @@ function renderTimelineFilters() {
 
   const compareOptions = $("#timelineCompareActorOptions");
   if (compareOptions) {
-    const candidates = state.stakeholders.filter((item) => item.id !== state.timelinePrimaryActorId);
+    const candidates = state.timelinePrimaryActorId === ALL_ACTORS_ID ? [] : state.stakeholders.filter((item) => item.id !== state.timelinePrimaryActorId);
     compareOptions.innerHTML = candidates.length ? candidates.map((item) => `
       <label class="choice-item">
         <input type="checkbox" data-compare-actor value="${esc(item.id)}" ${state.timelineCompareActorIds.includes(item.id) ? "checked" : ""} />
         <span>${esc(item.label)}</span>
       </label>
-    `).join("") : `<div class="field-note">尚無可加入的同住人口。</div>`;
+    `).join("") : `<div class="field-note">${state.timelinePrimaryActorId === ALL_ACTORS_ID ? "全案總覽已包含所有事件；若要看特定人物關聯，請先改選主軸人物。" : "尚無可加入的同住人口。"}</div>`;
   }
   const compareSummary = $("#compareActorSummary");
-  if (compareSummary) compareSummary.textContent = state.timelineCompareActorIds.length ? `已加入人物（${state.timelineCompareActorIds.length}）` : "加入關聯人物";
+  if (compareSummary) compareSummary.textContent = state.timelinePrimaryActorId === ALL_ACTORS_ID
+    ? "全案已包含所有人物"
+    : state.timelineCompareActorIds.length ? `已加入人物（${state.timelineCompareActorIds.length}）` : "加入關聯人物";
   const summary = $("#timelineFilterSummary");
   if (summary) {
-    const actorText = selectedTimelineActorIds().map(stakeholderLabel).join("、");
-    const relationText = state.timelineMatchMode === "shared" ? "共同事件" : "任一相關事件";
+    const isAllCase = state.timelinePrimaryActorId === ALL_ACTORS_ID;
+    const primaryText = state.timelinePrimaryActorId === ALL_ACTORS_ID ? "全案總覽" : stakeholderLabel(state.timelinePrimaryActorId);
+    const compareText = state.timelinePrimaryActorId === ALL_ACTORS_ID ? "已包含所有人物" : state.timelineCompareActorIds.length ? state.timelineCompareActorIds.map(stakeholderLabel).join("、") : "尚未加入其他人物";
+    const relationText = isAllCase ? "所有事件" : state.timelineMatchMode === "intersection" ? "只看共同事件" : "一起呈現";
     const laneText = state.timelineLaneFilter === "all" ? "全部歷程" : state.timelineLaneFilter;
     const contextText = state.showContextTimeline ? "已顯示制度背景參考" : "未顯示制度背景參考";
-    summary.textContent = `目前以 ${actorText} 檢視 ${relationText}；分類：${laneText}；${contextText}。`;
+    const counts = timelineRelationCounts();
+    summary.innerHTML = `
+      <span>${isAllCase ? `目前顯示 <strong>${esc(primaryText)}</strong>；${esc(compareText)}。` : `以 <strong>${esc(primaryText)}</strong> 為主軸；加入人物：${esc(compareText)}。`}</span>
+      <span>呈現方式：${esc(relationText)}；分類：${esc(laneText)}；${esc(contextText)}。</span>
+      <span class="timeline-relation-legend">
+        ${isAllCase
+          ? `<span class="timeline-relation-tag axis-case">全案事件 ${counts.case}</span>`
+          : `<span class="timeline-relation-tag axis-primary">主軸人物 ${counts.primary}</span>
+            <span class="timeline-relation-tag axis-compare">加入人物 ${counts.compare}</span>
+            <span class="timeline-relation-tag axis-shared">共同事件 ${counts.shared}</span>`}
+      </span>`;
   }
 }
 
@@ -813,6 +908,7 @@ function renderTimeline() {
   chart.style.setProperty("--year-count", span.length);
   const label = (year) => `${state.yearMode === "ad" ? year + 1911 : year}年`;
   const laneRows = state.timelineLaneFilter === "all" ? lanes : [state.timelineLaneFilter];
+  const decisionItems = visibleTimelineDecisionItems(chartEvents);
   let html = `<div class="timeline-grid"><div class="timeline-cell timeline-head">分類</div>`;
   html += span.map((year) => `<div class="timeline-cell timeline-head">${label(year)}</div>`).join("");
   for (const lane of laneRows) {
@@ -820,10 +916,18 @@ function renderTimeline() {
     const laneEvents = chartEvents
       .filter((event) => normalizeLane(event.lane) === lane)
       .sort((a, b) => eventStartYear(a) - eventStartYear(b) || String(a.id).localeCompare(String(b.id), "zh-Hant"));
-    const trackCount = Math.max(laneEvents.length, 1);
+    const { items, trackCount } = assignTimelineTracks(laneEvents);
     html += `<div class="timeline-lane-body" style="--track-count: ${trackCount};">`;
     html += span.map((year, index) => `<div class="timeline-year-bg" style="grid-column: ${index + 1}; grid-row: 1 / ${trackCount + 1};" aria-hidden="true"></div>`).join("");
-    html += laneEvents.map((event, index) => timelineEventBand(event, min, index + 1)).join("");
+    html += items.map(({ event, track }) => timelineEventBand(event, min, track)).join("");
+    html += `</div>`;
+  }
+  if (decisionItems.length) {
+    const trackCount = Math.max(decisionItems.length, 1);
+    html += `<div class="timeline-cell lane-label decision-label">決策節點</div>`;
+    html += `<div class="timeline-lane-body decision-lane-body" style="--track-count: ${trackCount};">`;
+    html += span.map((year, index) => `<div class="timeline-year-bg" style="grid-column: ${index + 1}; grid-row: 1 / ${trackCount + 1};" aria-hidden="true"></div>`).join("");
+    html += decisionItems.map((item, index) => decisionMarker(item, min, index + 1)).join("");
     html += `</div>`;
   }
   if (state.showContextTimeline) {
@@ -846,16 +950,32 @@ function timelineEventBand(event, minYear, track) {
   return end > start ? periodBar(event, style) : eventPill(event, style);
 }
 
+function decisionMarker(item, minYear, track) {
+  const startColumn = item.year - minYear + 1;
+  const relation = timelineRelationInfo(item.event);
+  const classes = ["decision-marker", laneClass(item.event.lane), relation.className];
+  if (state.selectedEventId === item.event.id) classes.push("active");
+  const style = `grid-column: ${startColumn}; grid-row: ${track};`;
+  return `
+    <button type="button" class="${classes.join(" ")}" style="${esc(style)}" data-open-event="${esc(item.event.id)}" title="${esc(`${item.decision.question}：連結 ${item.event.title}`)}">
+      <span>決策</span>
+      <strong>${esc(item.decision.question)}</strong>
+      <small>${esc(eventPeriodText(item.event))}</small>
+    </button>`;
+}
+
 function eventPill(event, style = "") {
-  const classes = ["event-pill", laneClass(event.lane)];
+  const relation = timelineRelationInfo(event);
+  const classes = ["event-pill", laneClass(event.lane), relation.className];
   if (state.selectedEventId === event.id) classes.push("active");
-  return `<button type="button" class="${classes.join(" ")}" ${style ? `style="${esc(style)}"` : ""} data-open-event="${esc(event.id)}"><strong>${esc(event.title)}</strong><small>${esc(eventPeriodText(event))}${event.age ? ` / ${esc(event.age)}歲` : ""}</small><small>${esc(stakeholderNames(event.actorIds))}</small></button>`;
+  return `<button type="button" class="${classes.join(" ")}" ${style ? `style="${esc(style)}"` : ""} data-open-event="${esc(event.id)}" data-timeline-event-id="${esc(event.id)}">${timelineRelationBadge(event)}<strong>${esc(event.title)}</strong><small>${esc(eventPeriodText(event))}${event.age ? ` / ${esc(event.age)}歲` : ""}</small><small>${esc(stakeholderNames(event.actorIds))}</small></button>`;
 }
 
 function periodBar(event, style = "") {
-  const classes = ["period-bar", laneClass(event.lane)];
+  const relation = timelineRelationInfo(event);
+  const classes = ["period-bar", laneClass(event.lane), relation.className];
   if (state.selectedEventId === event.id) classes.push("active");
-  return `<button type="button" class="${classes.join(" ")}" ${style ? `style="${esc(style)}"` : ""} data-open-event="${esc(event.id)}" title="${esc(`${event.title}：${eventPeriodText(event)}`)}"><strong>${esc(event.title)}</strong><small>${esc(eventPeriodText(event))}${event.age ? ` / ${esc(event.age)}歲` : ""}</small><small>${esc(stakeholderNames(event.actorIds))}</small></button>`;
+  return `<button type="button" class="${classes.join(" ")}" ${style ? `style="${esc(style)}"` : ""} data-open-event="${esc(event.id)}" data-timeline-event-id="${esc(event.id)}" title="${esc(`${event.title}：${eventPeriodText(event)}`)}"><span class="period-caption">${esc(event.ongoing ? "持續至今" : "時間段")}</span>${timelineRelationBadge(event)}<strong>${esc(event.title)}</strong><small>${esc(eventPeriodText(event))}${event.age ? ` / ${esc(event.age)}歲` : ""}</small><small>${esc(stakeholderNames(event.actorIds))}</small></button>`;
 }
 
 function durationMarker(event) {
@@ -905,7 +1025,7 @@ function renderTimelineEventList() {
   const missingTimeCount = events.filter((event) => !eventHasTimelineYear(event)).length;
   if (counter) counter.textContent = missingTimeCount ? `${events.length}筆，${missingTimeCount}筆待補時間` : `${events.length}筆`;
   if (!events.length) {
-    target.innerHTML = `<div class="field-note">目前篩選條件下沒有事件。可調整人物、關聯方式或歷程分類。</div>`;
+    target.innerHTML = `<div class="field-note">目前篩選條件下沒有事件。可調整主軸人物、加入人物、人物呈現或歷程分類。</div>`;
     return;
   }
   target.innerHTML = lanes.map((lane) => {
@@ -916,9 +1036,10 @@ function renderTimelineEventList() {
         <h3>${esc(lane)}</h3>
         ${laneEvents.map((event) => `
           <div class="timeline-event-item" data-event-card-row="${esc(event.id)}">
-            <button type="button" class="timeline-event-card ${state.selectedEventId === event.id ? "active" : ""}" data-open-event="${esc(event.id)}">
+            <button type="button" class="timeline-event-card ${timelineRelationInfo(event).className} ${state.selectedEventId === event.id ? "active" : ""}" data-open-event="${esc(event.id)}">
               <span>${esc(eventPeriodText(event))}${event.age ? ` / ${esc(event.age)}歲` : ""}</span>
               <strong>${esc(event.title)}</strong>
+              ${timelineRelationBadge(event)}
               ${eventPeopleLine(event.actorIds, true)}
               ${eventHasTimelineYear(event) ? "" : `<span class="missing-time-note">未放入視覺時間軸</span>`}
             </button>
@@ -1037,15 +1158,17 @@ function renderDraftList() {
 function eventDraftCard(draft, index) {
   const laneOptions = lanes.map((lane) => `<option ${lane === draft.lane ? "selected" : ""}>${esc(lane)}</option>`).join("");
   const confidence = ["低", "中", "高"].map((value) => `<option ${value === draft.confidence ? "selected" : ""}>${value}</option>`).join("");
-  const warnings = draftReviewWarnings(draft).map((warning) => `<li>${esc(warning)}</li>`).join("");
+  const warningItems = draftReviewWarnings(draft);
+  const warnings = warningItems.map((warning) => `<li>${esc(warning)}</li>`).join("");
   const nextEventDraftIndex = state.drafts.findIndex((item, candidateIndex) => candidateIndex > index && item.type === "event");
   return `
     <article class="draft-card" data-draft-card="${index}">
       <div class="draft-card-head">
         <h3>歸檔前確認 ${esc(draft.title || "未命名")}</h3>
-        <span class="badge ${warnings ? "amber" : ""}">${warnings ? "需確認" : "可確認"}</span>
+        <span class="badge ${warnings ? "amber" : ""}">${draftStatusLabel(draft, warningItems)}</span>
       </div>
       ${warnings ? `<ul class="draft-warnings">${warnings}</ul>` : ""}
+      ${draftReviewChecklist(draft)}
       <dl class="evidence-grid">
         <dt>原文依據</dt><dd>${esc(draft.sourceText || draft.fact || "待補原文依據")}</dd>
         <dt>辨識人物</dt><dd>${esc(draft.actorText || "待確認")}</dd>
@@ -1088,6 +1211,60 @@ function eventDraftCard(draft, index) {
         <button type="button" data-discard-draft="${index}">略過</button>
       </div>
     </article>`;
+}
+
+function draftStatusLabel(draft, warnings = draftReviewWarnings(draft)) {
+  if (warnings.some((item) => /拆成|多個人物|多個年份|多個金額|重複|分類/.test(item))) return "建議先確認";
+  const checklist = draftReviewItems(draft);
+  return checklist.every((item) => item.done) ? "可歸檔" : "待補資料";
+}
+
+function draftReviewChecklist(draft) {
+  const items = draftReviewItems(draft);
+  return `
+    <div class="draft-review-checklist" aria-label="草稿歸檔前確認">
+      ${items.map((item) => `
+        <span class="${item.done ? "done" : "todo"}">
+          <strong>${esc(item.label)}</strong>
+          <em>${esc(item.text)}</em>
+        </span>
+      `).join("")}
+    </div>`;
+}
+
+function draftReviewItems(draft) {
+  const actors = normalizeActorIds(draft.actorIds);
+  const hasFact = Boolean(String(draft.fact || "").trim() || String(draft.title || "").trim());
+  const hasTime = Boolean(numberOrEmpty(draft.rocYear));
+  const hasContextObject = Boolean(String(draft.place || "").trim() || String(draft.objects || "").trim());
+  const lane = normalizeLane(draft.lane);
+  return [
+    {
+      label: "人物",
+      done: actors.length > 0,
+      text: actors.length ? stakeholderNames(actors) : "待連結人物"
+    },
+    {
+      label: "事件",
+      done: hasFact,
+      text: hasFact ? "已填事件事實" : "待補事件事實"
+    },
+    {
+      label: "時間",
+      done: hasTime,
+      text: hasTime ? eventPeriodText(draft) : "待補民國年"
+    },
+    {
+      label: "時地物",
+      done: hasContextObject,
+      text: hasContextObject ? [draft.place, draft.objects].filter(Boolean).join(" / ") : "可補地點、窗口、金額或文件"
+    },
+    {
+      label: "分類",
+      done: lanes.includes(lane),
+      text: lane
+    }
+  ];
 }
 
 function draftActorAssist(draft) {
@@ -1176,6 +1353,9 @@ function draftReviewWarnings(draft) {
   if (suggestedLane !== normalizeLane(draft.lane)) warnings.push(`系統建議主歷程可能是「${suggestedLane}」；請確認目前分類是否正確。`);
   if (normalizeLane(draft.lane) === "感情與家庭史" && /生活費|負債|借貸|還款|債務|5000|500萬|信用卡|金錢/.test(text)) {
     warnings.push("此事件核心看起來偏金錢流動；若不是婚姻/交往/伴侶關係變化，主分類建議改為重大財務事件。");
+  }
+  if (normalizeLane(draft.lane) !== "疾病與身心健康史" && /身心科|精神科|就醫|診斷|用藥|服藥|門診|住院|復健/.test(text)) {
+    warnings.push("原文含就醫、診斷或身心健康線索；請確認主分類是否應改為疾病與身心健康史。");
   }
   const duplicate = state.events.find((event) => {
     if (Number(event.rocYear) !== Number(draft.rocYear || 0)) return false;
@@ -1282,7 +1462,7 @@ function normalizeEventDraftFromSplit(draft, text, suffix) {
       lane,
       relatedLanes: suggestRelatedLanes(cleanText, lane),
       extraTags: suggestExtraTags(cleanText, lane),
-      title: `${titleFromSentence(cleanText, lane)}（${suffix}）`,
+      title: suffix ? `${titleFromSentence(cleanText, lane)}（${suffix}）` : titleFromSentence(cleanText, lane),
       fact: cleanText,
       actorText,
       actorIds: matchActorIds(actorText || cleanText),
@@ -1296,7 +1476,7 @@ function normalizeEventDraftFromSplit(draft, text, suffix) {
     ...draft,
     rocYear: "",
     endRocYear: "",
-    title: `${draft.title || "待確認事件"}（${suffix}）`,
+    title: suffix ? `${draft.title || "待確認事件"}（${suffix}）` : draft.title || "待確認事件",
     fact: cleanText,
     sourceText: draft.sourceText || draft.fact || "",
     confidence: "低"
@@ -1342,6 +1522,12 @@ function uniqueDelimitedText(values) {
 function confirmDraft(index) {
   const draft = state.drafts[index];
   if (!draft) return;
+  if (draft.type === "event") {
+    const warnings = draftReviewWarnings(draft);
+    if (warnings.length && !confirm(`這筆草稿還有 ${warnings.length} 個建議確認項目，仍要先歸檔嗎？\n\n${warnings.slice(0, 3).join("\n")}`)) {
+      return;
+    }
+  }
   if (draft.type === "decision") {
     state.decisions.push({
       id: nextId("D", state.decisions),
@@ -1441,6 +1627,7 @@ function updateExportProbe() {
   const probe = document.querySelector("#exportProbe");
   if (!probe) return;
   const blob = buildXlsx();
+  const relationCounts = timelineRelationCounts();
   probe.dataset.eventCount = String(state.events.length);
   probe.dataset.decisionCount = String(state.decisions.length);
   probe.dataset.stakeholderCount = String(state.stakeholders.length);
@@ -1451,11 +1638,18 @@ function updateExportProbe() {
   probe.dataset.researchRows = String(researchRows.length);
   probe.dataset.filteredEventCount = String(filteredTimelineEvents().length);
   probe.dataset.selectedActorCount = String(selectedTimelineActorIds().length);
+  probe.dataset.primaryAxisEventCount = String(relationCounts.primary);
+  probe.dataset.compareAxisEventCount = String(relationCounts.compare);
+  probe.dataset.sharedAxisEventCount = String(relationCounts.shared);
+  probe.dataset.caseAxisEventCount = String(relationCounts.case);
   probe.dataset.policyTimelineCount = String(state.showContextTimeline ? contextTimelineRows.length : 0);
+  probe.dataset.timelineDecisionCount = String(visibleTimelineDecisionItems(filteredTimelineEvents().filter(eventHasTimelineYear)).length);
   probe.dataset.durationEventCount = String(state.events.filter((event) => eventStartYear(event) && eventEndYear(event) > eventStartYear(event)).length);
   probe.dataset.missingTimeEventCount = String(state.events.filter((event) => !eventHasTimelineYear(event)).length);
   probe.dataset.exampleEventCount = String(state.events.filter(isExampleItem).length);
   probe.dataset.exampleStakeholderCount = String(state.stakeholders.filter(isExampleItem).length);
+  probe.dataset.startGuidePresent = String(Boolean(document.querySelector(".start-guide")));
+  probe.dataset.timelineLocators = String(document.querySelectorAll("[data-timeline-event-id]").length);
   probe.dataset.xlsxSize = String(blob.size);
   probe.dataset.mimeType = blob.type;
 }
@@ -1531,6 +1725,15 @@ function clearExamplePackWithoutRender() {
 function switchTab(tabName) {
   $$(".tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === tabName));
   $$(".workspace").forEach((panel) => panel.classList.toggle("active", panel.id === `tab-${tabName}`));
+}
+
+function openAiInputForm() {
+  switchTab("ai");
+  const form = $("#aiInputForm");
+  requestAnimationFrame(() => {
+    form?.scrollIntoView({ behavior: "smooth", block: "start" });
+    form?.elements?.intakeText?.focus?.();
+  });
 }
 
 function openNewStakeholderForm() {
@@ -1688,6 +1891,7 @@ function renderWithoutJump() {
   const scrollX = window.scrollX;
   const scrollY = window.scrollY;
   const timelineScroll = $(".timeline-scroll")?.scrollLeft || 0;
+  const timelineScrollTop = $(".timeline-scroll")?.scrollTop || 0;
   document.documentElement.style.overflowAnchor = "none";
   document.body.style.overflowAnchor = "none";
   render();
@@ -1695,7 +1899,10 @@ function renderWithoutJump() {
   const restore = () => {
     window.scrollTo(scrollX, scrollY);
     const timeline = $(".timeline-scroll");
-    if (timeline) timeline.scrollLeft = timelineScroll;
+    if (timeline) {
+      timeline.scrollLeft = timelineScroll;
+      timeline.scrollTop = timelineScrollTop;
+    }
   };
 
   restore();
@@ -1710,6 +1917,36 @@ function renderWithoutJump() {
       }, 0);
     });
   });
+}
+
+function cssValue(value) {
+  if (window.CSS?.escape) return CSS.escape(String(value));
+  return String(value).replace(/["\\]/g, "\\$&");
+}
+
+function scrollTimelineToEvent(eventId, shouldFlash = true) {
+  const event = state.events.find((item) => item.id === eventId);
+  if (!event || !eventHasTimelineYear(event)) return;
+  requestAnimationFrame(() => {
+    const scroller = $(".timeline-scroll");
+    const target = $(`[data-timeline-event-id="${cssValue(eventId)}"]`);
+    if (!scroller || !target) return;
+    const left = Math.max(0, target.offsetLeft - scroller.clientWidth * 0.36);
+    const top = Math.max(0, target.offsetTop - scroller.clientHeight * 0.42);
+    scroller.scrollTo({ left, top, behavior: "smooth" });
+    if (shouldFlash) {
+      target.classList.add("timeline-focus-flash");
+      window.setTimeout(() => target.classList.remove("timeline-focus-flash"), 1300);
+    }
+  });
+}
+
+function selectEventFromControl(eventId, sourceElement) {
+  state.selectedEventId = eventId;
+  state.inlineEditingEventId = "";
+  const shouldFocusTimeline = Boolean(sourceElement?.closest?.(".timeline-event-list"));
+  renderWithoutJump();
+  if (shouldFocusTimeline) window.setTimeout(() => scrollTimelineToEvent(eventId), 80);
 }
 
 function bindEvents() {
@@ -1727,7 +1964,7 @@ function bindEvents() {
 
   $("#timelinePrimaryActor").addEventListener("change", (event) => {
     state.timelinePrimaryActorId = event.target.value;
-    state.timelineCompareActorIds = normalizeCompareActorIds(state.timelineCompareActorIds, state.timelinePrimaryActorId);
+    state.timelineCompareActorIds = state.timelinePrimaryActorId === ALL_ACTORS_ID ? [] : normalizeCompareActorIds(state.timelineCompareActorIds, state.timelinePrimaryActorId);
     state.selectedEventId = "";
     state.inlineEditingEventId = "";
     render();
@@ -1760,6 +1997,9 @@ function bindEvents() {
     render();
   });
 
+  $("#startAiFromGuide")?.addEventListener("click", openAiInputForm);
+  $("#startEventFromGuide")?.addEventListener("click", openNewEventForm);
+  $("#startStakeholderFromGuide")?.addEventListener("click", openNewStakeholderForm);
   $("#addTimelineEvent")?.addEventListener("click", openNewEventForm);
   $("#addTimelineStakeholder")?.addEventListener("click", openNewStakeholderForm);
 
@@ -1840,9 +2080,7 @@ function bindEvents() {
     if (openEventId) {
       event.preventDefault();
       openEventControl.blur?.();
-      state.selectedEventId = openEventId;
-      state.inlineEditingEventId = "";
-      renderWithoutJump();
+      selectEventFromControl(openEventId, openEventControl);
       return;
     }
     const inlineEditControl = event.target?.closest?.("[data-inline-edit-event]");
@@ -2030,12 +2268,33 @@ async function analyzeIntakeText(text) {
 }
 
 function normalizeAnalysisDrafts(analysis, fallbackText) {
+  const eventDrafts = Array.isArray(analysis?.events)
+    ? analysis.events.flatMap((item) => expandCompoundEventDraft(normalizeEventDraft(item)))
+    : [];
   const apiDrafts = [
-    ...(Array.isArray(analysis?.events) ? analysis.events.map((item) => normalizeEventDraft(item)) : []),
+    ...eventDrafts,
     ...(Array.isArray(analysis?.decisions) ? analysis.decisions.map((item) => normalizeDecisionDraft(item)) : [])
   ].filter(Boolean);
   if (analysis?.mode === "openai" && apiDrafts.length) return apiDrafts;
   return localSemanticDrafts(fallbackText);
+}
+
+function expandCompoundEventDraft(draft) {
+  if (!draft || draft.type !== "event") return [];
+  const source = [draft.sourceText, draft.fact].filter(Boolean).join("\n");
+  const pieces = uniqueTextList(splitIntakeSegments(source)).filter((piece) => {
+    const normalizedPiece = normalizeComparableText(piece);
+    const normalizedWhole = normalizeComparableText(source);
+    return normalizedPiece && normalizedPiece !== normalizedWhole;
+  });
+  const shouldSplit = pieces.length > 1 && (
+    countActorCues(source) > 1 ||
+    countYearCues(source) > 1 ||
+    countAmountCues(source) > 1 ||
+    pieces.some((piece) => detectLane(piece) !== normalizeLane(draft.lane))
+  );
+  if (!shouldSplit) return [draft];
+  return pieces.slice(0, 8).map((piece) => normalizeEventDraftFromSplit(draft, piece, ""));
 }
 
 function normalizeEventDraft(item) {
@@ -2147,7 +2406,7 @@ function detectLane(text) {
   const rules = [
     ["社會資源使用歷程", /低收入戶|中低收入戶|低收|中低收|急難|補助|社工|政府|方案|轉介|法扶|網絡|服務|資格|文件|兒少教育發展帳戶|租金補貼|社宅/],
     ["重大財務事件", /生活費|卡債|信用卡|債|負債|借|借款|借貸|貸款|錢莊|欠|利息|協商|還款|帳戶|存款|保險|財務|金錢|代繳|繳款|催收|\d+(?:\.\d+)?\s*(?:萬元|萬|元|塊)/],
-    ["疾病與身心健康史", /疾病|生病|就醫|醫院|精神|憂鬱|焦慮|健康|長照|照顧者|失能|醫療/],
+    ["疾病與身心健康史", /疾病|生病|就醫|醫院|診所|門診|診斷|用藥|服藥|身心科|精神科|精神|憂鬱|焦慮|健康|長照|照顧者|失能|醫療|住院|復健/],
     ["感情與家庭史", /感情|交往|婚姻|結婚|離婚|分居|再婚|伴侶|先生|太太|配偶|同居|分手|親密關係/],
     ["就業與就學史", /工作|就業|就學|學校|學歷|職訓|薪水|收入|失業|工時|留停/],
     ["居住遷移史", /居住|租屋|搬家|搬|遷|住宿|戶籍|房租|安置|中途之家|住所/]
@@ -2211,6 +2470,8 @@ function splitIntakeSegments(text) {
   const normalized = String(text || "")
     .replace(/\r/g, "\n")
     .replace(/([。！？!?；;])/g, "$1\n")
+    .replace(/[，,]\s*(?=(?:個案|案主|案母|案父|母親|父親|子女|孩子|配偶|伴侶|先生|太太|主要照顧者))/g, "\n")
+    .replace(/(戶|資格|補助|生活費|負債|債務|借款|借貸|還款|元|萬元|萬)(?=(?:個案|案主|案母|案父|母親|父親|子女|孩子|配偶|伴侶|先生|太太|主要照顧者))/g, "$1\n")
     .replace(/\s+(?=(?:個案|案主|案母|案父|母親|父親|子女|孩子|配偶|伴侶|先生|太太|主要照顧者))/g, "\n");
   return normalized
     .split(/\n+/)
@@ -2221,7 +2482,14 @@ function splitIntakeSegments(text) {
 
 function splitCompoundSegment(segment) {
   const value = String(segment || "").trim();
-  return value ? [value] : [];
+  if (!value) return [];
+  const actorStart = "(?:個案|案主|案母|案父|母親|父親|子女|孩子|配偶|伴侶|先生|太太|主要照顧者)";
+  const normalized = value
+    .replace(new RegExp(`([。！？!?；;])\\s*(?=${actorStart})`, "g"), "$1\n")
+    .replace(new RegExp(`([，,])\\s*(?=${actorStart})`, "g"), "\n")
+    .replace(new RegExp(`(戶|資格|補助|生活費|負債|債務|借款|借貸|還款|元|萬元|萬)(?=${actorStart})`, "g"), "$1\n");
+  const pieces = normalized.split(/\n+/).map((item) => item.trim()).filter(Boolean);
+  return pieces.length ? pieces : [value];
 }
 
 function detectActorText(text) {
@@ -2281,7 +2549,7 @@ function suggestRelatedLanes(text, primaryLane) {
   if (/(?:低收入戶|中低收入戶|低收|中低收|補助|社工|轉介|法扶|租金補貼|兒少教育發展帳戶|社宅)/.test(value)) add("社會資源使用歷程");
   if (/(?:工作|就業|就學|學校|收入來源|收入減少|收入中斷|收入不穩|職訓|失業|薪水)/.test(value)) add("就業與就學史");
   if (/(?:居住|租屋|搬|戶籍|房租|安置|同住|借住)/.test(value)) add("居住遷移史");
-  if (/(?:疾病|就醫|醫院|健康|精神|長照|照顧者)/.test(value)) add("疾病與身心健康史");
+  if (/(?:疾病|就醫|醫院|診所|門診|診斷|用藥|身心科|精神科|健康|精神|長照|照顧者|住院|復健)/.test(value)) add("疾病與身心健康史");
   if (/(?:感情|交往|婚姻|結婚|離婚|分居|伴侶|配偶|先生|太太|同居|分手)/.test(value)) add("感情與家庭史");
   return [...new Set(related)];
 }
@@ -2691,6 +2959,7 @@ window.caseTimelineTool = {
   },
   exportProbe() {
     const blob = buildXlsx();
+    const relationCounts = timelineRelationCounts();
     return {
       version: state.version,
       eventCount: state.events.length,
@@ -2699,7 +2968,12 @@ window.caseTimelineTool = {
       draftCount: state.drafts.length,
       selectedActorCount: selectedTimelineActorIds().length,
       filteredEventCount: filteredTimelineEvents().length,
+      primaryAxisEventCount: relationCounts.primary,
+      compareAxisEventCount: relationCounts.compare,
+      sharedAxisEventCount: relationCounts.shared,
+      caseAxisEventCount: relationCounts.case,
       policyTimelineCount: state.showContextTimeline ? contextTimelineRows.length : 0,
+      timelineDecisionCount: visibleTimelineDecisionItems(filteredTimelineEvents().filter(eventHasTimelineYear)).length,
       durationEventCount: state.events.filter((event) => eventEndYear(event) > eventStartYear(event)).length,
       exampleEventCount: state.events.filter(isExampleItem).length,
       exampleStakeholderCount: state.stakeholders.filter(isExampleItem).length,
