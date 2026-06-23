@@ -92,8 +92,9 @@
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
 - Local app version: `v0.22-p2-timeline-overview-decisions`
-- Current production app version before next deployment: `v0.18-event-people-column`
+- Current production app version: `v0.22-p2-timeline-overview-decisions`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - v0.9 verification deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`
+- v0.22 verification deployment inspected: `dpl_DctqioCLFfC75bREzQUc5N85sF96`
 - Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`
 - Production target: `Ready`

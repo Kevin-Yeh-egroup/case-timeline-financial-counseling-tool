@@ -406,7 +406,11 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41439` bytes, and relation counts matched the visible event-list classes.
   - Mobile width around `390px`: no whole-page horizontal overflow; the event list still showed `主軸人物`, `加入人物`, and `共同事件` labels; console errors/warnings were empty.
 - GitHub/Vercel deployment:
-  - Not performed in this update. Production remains at the previously deployed `v0.18-event-people-column` until Kevin explicitly asks for push/deploy.
+  - Performed after local and browser verification on commit `955b51e`.
+  - Production deployment `dpl_DctqioCLFfC75bREzQUc5N85sF96` was verified at `https://case-timeline-financial-counseling.vercel.app/`.
+  - Stable URL HTTP check: returned `200`, `X-Robots-Tag: noindex, nofollow, noarchive`, expected `robots.txt`, and `app.js` included `v0.22-p2-timeline-overview-decisions`.
+  - Production browser check: page rendered `個案時間軸整理工具`, first-use guide, `全案總覽（所有事件）`, `3` decision markers, and no visible `敏感度`, `泳道`, or `比較人物`.
+  - Production all-case browser flow: selected `全案總覽` and confirmed all visible event cards and visual timeline items used `全案事件`; in the current browser's saved test state, `caseAxisEventCount = filteredEventCount = 8`.
 
 ## v0.20 P0 Onboarding And Timeline Focus
 
