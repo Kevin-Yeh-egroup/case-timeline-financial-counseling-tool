@@ -1,4 +1,4 @@
-const CURRENT_STATE_VERSION = "v0.22-p2-timeline-overview-decisions";
+const CURRENT_STATE_VERSION = "v0.23-ai-input-merged";
 const EXAMPLE_PACKAGE_ID = "example-life-context-pack";
 const ALL_ACTORS_ID = "all";
 const lanes = ["居住遷移史", "就業與就學史", "感情與家庭史", "疾病與身心健康史", "社會資源使用歷程", "重大財務事件"];
@@ -2145,9 +2145,7 @@ function bindEvents() {
 
   $("#aiInputForm").addEventListener("submit", async (event) => {
     event.preventDefault();
-    const formText = new FormData(event.currentTarget).get("intakeText") || "";
-    const combined = $("#aiCombinedText").value || "";
-    const text = [formText, combined].map((part) => String(part).trim()).filter(Boolean).join("\n\n");
+    const text = String($("#aiCombinedText").value || "").trim();
     await analyzeIntakeText(text);
   });
 
@@ -2692,7 +2690,7 @@ function startVoiceInput() {
       $("#aiCombinedText").value = [$("#aiCombinedText").value, finalText].map((part) => part.trim()).filter(Boolean).join("\n");
     }
   };
-  voiceRecognition.onerror = () => setAiStatus("語音辨識中斷；可改用文字輸入。");
+  voiceRecognition.onerror = () => setAiStatus("語音辨識中斷；可改用貼上文字。");
   voiceRecognition.onstart = () => setAiStatus("語音輸入中；請用假資料測試，真實個資需在機構規範內使用。");
   voiceRecognition.onend = () => setAiStatus("語音輸入已停止。");
   voiceRecognition.start();

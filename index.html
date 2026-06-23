@@ -138,7 +138,7 @@
             <div class="section-head">
               <h2>AI 輔助匯入</h2>
             </div>
-            <label>文字輸入<textarea name="intakeText" rows="6" placeholder="貼上會談摘要、轉介單摘要、社工紀錄節錄或財務諮詢筆記。"></textarea></label>
+            <label>貼上或匯入內容<textarea id="aiCombinedText" name="intakeText" rows="9" placeholder="貼上會談摘要、轉介單摘要、社工紀錄節錄或財務諮詢筆記；語音轉文字與檔案抽取內容也會累積在這裡。送出前請先刪除不該分析的個資。"></textarea></label>
             <label>上傳檔案
               <input id="fileInput" type="file" multiple accept=".txt,.csv,.md,.pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
             </label>
@@ -147,7 +147,6 @@
               <button class="ghost" id="startVoice" type="button">開始語音</button>
               <button class="ghost" id="stopVoice" type="button">停止</button>
             </div>
-            <label>待整理文字<textarea id="aiCombinedText" rows="7" placeholder="語音轉文字與檔案抽取內容會累積在這裡；送出前可先刪除不該分析的個資。"></textarea></label>
             <div id="aiStatus" class="field-note">送出後只會產生待確認草稿，不會直接寫入時間軸。</div>
             <button class="primary" type="submit">整理成待確認草稿</button>
           </form>

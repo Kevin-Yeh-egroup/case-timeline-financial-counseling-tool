@@ -12,6 +12,7 @@ Public-safe static web tool for Taiwan social workers, financial-health counselo
 - Excel download is generated in the browser as `.xlsx`.
 - Public prototype should use sample data only unless the responsible institution explicitly approves real-case handling.
 - Review-stage noindex controls are intentionally enabled.
+- Version `v0.23` merges the AI text-entry area so pasted text, extracted file text, and speech-to-text content accumulate in one reviewable field before analysis.
 - Version `v0.22` improves timeline reading: all-case overview can show every event, year and category headers stay visible while scrolling, same-category events are packed into fewer non-overlapping rows, and linked decision nodes appear directly on the timeline.
 - Version `v0.21` strengthened AI import review: mixed multi-person text is split into separate drafts, draft cards show people/event/time/place-object/classification review status, health and financial classification rules are tighter, and warning drafts ask for confirmation before archiving.
 

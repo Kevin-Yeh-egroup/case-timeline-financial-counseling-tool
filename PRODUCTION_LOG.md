@@ -406,11 +406,7 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Export probe: sheet count `9`, MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, non-empty XLSX blob `41439` bytes, and relation counts matched the visible event-list classes.
   - Mobile width around `390px`: no whole-page horizontal overflow; the event list still showed `主軸人物`, `加入人物`, and `共同事件` labels; console errors/warnings were empty.
 - GitHub/Vercel deployment:
-  - Performed after local and browser verification on commit `955b51e`.
-  - Production deployment `dpl_DctqioCLFfC75bREzQUc5N85sF96` was verified at `https://case-timeline-financial-counseling.vercel.app/`.
-  - Stable URL HTTP check: returned `200`, `X-Robots-Tag: noindex, nofollow, noarchive`, expected `robots.txt`, and `app.js` included `v0.22-p2-timeline-overview-decisions`.
-  - Production browser check: page rendered `個案時間軸整理工具`, first-use guide, `全案總覽（所有事件）`, `3` decision markers, and no visible `敏感度`, `泳道`, or `比較人物`.
-  - Production all-case browser flow: selected `全案總覽` and confirmed all visible event cards and visual timeline items used `全案事件`; in the current browser's saved test state, `caseAxisEventCount = filteredEventCount = 8`.
+  - Not performed in this update. Production remains at the previously deployed `v0.18-event-people-column` until Kevin explicitly asks for push/deploy.
 
 ## v0.20 P0 Onboarding And Timeline Focus
 
@@ -475,4 +471,24 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - VM export check: XLSX MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, blob `41255` bytes, `9` sheets, `caseAxisEventCount = 6`, and `timelineDecisionCount = 3`.
   - Download browser note: the page probe reported XLSX MIME and `41439` bytes, and VM export generated a valid XLSX blob; the in-app browser did not emit a download event for the blob URL within `10s`, with no console errors.
 - GitHub/Vercel deployment:
-  - Not performed in this update. Production remains at the previously deployed `v0.18-event-people-column` until Kevin explicitly asks for push/deploy.
+  - Performed after local and browser verification on commit `955b51e`.
+  - Production deployment `dpl_DctqioCLFfC75bREzQUc5N85sF96` was verified at `https://case-timeline-financial-counseling.vercel.app/`.
+  - Stable URL HTTP check: returned `200`, `X-Robots-Tag: noindex, nofollow, noarchive`, expected `robots.txt`, and `app.js` included `v0.22-p2-timeline-overview-decisions`.
+  - Production browser check: page rendered `個案時間軸整理工具`, first-use guide, `全案總覽（所有事件）`, `3` decision markers, and no visible `敏感度`, `泳道`, or `比較人物`.
+  - Production all-case browser flow: selected `全案總覽` and confirmed all visible event cards and visual timeline items used `全案事件`; in the current browser's saved test state, `caseAxisEventCount = filteredEventCount = 8`.
+
+## v0.23 AI Input Field Merge
+
+- Date: 2026-06-23
+- Update summary:
+  - Merged the AI import `文字輸入` and `待整理文字` textareas into one field named `貼上或匯入內容`.
+  - Kept pasted text, extracted file text, and speech-to-text content in the same editable field so workers can review and remove personal data before analysis.
+  - Simplified submit logic to analyze the single combined field only.
+  - Reworded the speech-recognition fallback from `文字輸入` to `貼上文字`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Static scan confirmed the AI import section has one combined textarea and no separate `文字輸入` / `待整理文字` textarea labels.
+  - In-app browser check on `http://127.0.0.1:4181/`: AI import tab showed exactly `1` textarea, label `貼上或匯入內容`, submit button `整理成待確認草稿`, and the old `文字輸入` / `待整理文字` labels were not visible in the AI import section.
+  - Browser fill check: entered fake text into the merged field and confirmed the field accepted input without changing stored drafts.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at `v0.22-p2-timeline-overview-decisions` until Kevin explicitly asks for push/deploy.

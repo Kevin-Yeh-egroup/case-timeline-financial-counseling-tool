@@ -62,6 +62,7 @@
 - [x] Drafts with warnings ask for confirmation before archiving into the timeline.
 - [x] Interface uses a project-local generated masthead asset and warmer colors without adding readable fake case data to the image.
 - [x] Visual polish keeps timeline, event list, and draft review flows as the first-screen working surface rather than turning the app into a landing page.
+- [x] AI import uses one combined text area for pasted notes, extracted file text, and speech-to-text content.
 - [x] Timeline screen has direct `新增事件` and `新增同住人口` entry points.
 - [x] First-use start guide shows a clear `匯入或新增資料 -> 確認人事時地物 -> 加入時間軸` flow.
 - [x] Start-guide buttons open AI import, new-event, and new-household-member entry points directly.
@@ -91,7 +92,7 @@
 - GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
-- Local app version: `v0.22-p2-timeline-overview-decisions`
+- Local app version: `v0.23-ai-input-merged`
 - Current production app version: `v0.22-p2-timeline-overview-decisions`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - v0.9 verification deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`
