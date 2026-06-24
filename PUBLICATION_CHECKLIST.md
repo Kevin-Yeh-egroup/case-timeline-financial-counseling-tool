@@ -26,7 +26,8 @@
 - [x] AI import tab accepts text, file upload, and voice input controls.
 - [x] AI analysis creates editable drafts instead of directly modifying the timeline.
 - [x] Confirming a draft adds it to the timeline or decision-card list.
-- [x] Excel export includes a `待確認草稿` sheet.
+- [x] Excel export includes a `修改編輯` sheet.
+- [x] Header shows a visible but unobtrusive version/update-time badge for testers.
 - [x] Tool focuses the people layer on household members/cohabitants first.
 - [x] Events and decision cards can link to related household members.
 - [x] Excel export includes a `同住人口` sheet and household-member columns.
@@ -63,9 +64,27 @@
 - [x] Interface uses a project-local generated masthead asset and warmer colors without adding readable fake case data to the image.
 - [x] Visual polish keeps timeline, event list, and draft review flows as the first-screen working surface rather than turning the app into a landing page.
 - [x] AI import uses one combined text area for pasted notes, extracted file text, and speech-to-text content.
+- [x] AI import can use Gemini 2.5 Flash structured output when `GEMINI_API_KEY` or `GOOGLE_API_KEY` is configured.
+- [x] AI import keeps OpenAI structured output as a fallback or explicit provider override.
+- [x] AI import falls back to browser-local semantic rules when no model API key is configured or all model calls fail.
+- [x] First-use flow centers on quickly generating the first life-context map before detailed editing.
+- [x] AI event drafts with confirmed years appear on the timeline as a visually distinct `AI 初稿` preview layer.
+- [x] Draft cards show review summary first and keep detailed editing fields collapsed by default.
+- [x] Timeline can be downloaded as SVG and PNG image files in addition to Excel.
 - [x] Timeline screen has direct `新增事件` and `新增同住人口` entry points.
-- [x] First-use start guide shows a clear `匯入或新增資料 -> 確認人事時地物 -> 加入時間軸` flow.
-- [x] Start-guide buttons open AI import, new-event, and new-household-member entry points directly.
+- [x] First-use start guide centers on quick paste and generation instead of showing the full editing workflow upfront.
+- [x] First screen does not expose AI import, direct-add, or manual workbench entry buttons before generation or record loading.
+- [x] First screen no longer shows the visible `公開版僅使用假資料。` notice.
+- [x] Download actions are under `下載檔案` beside `分享檢查`; sample reload/deletion actions sit above the timeline event list.
+- [x] AI import, draft review, manual event form, and event table are combined under the `資料整理` workspace.
+- [x] Decision-node surfaces are labeled `決策／處遇` with wording that clarifies this can record case-owner choices or social-worker discussion directions, not automated conclusions.
+- [x] Quick generation shows a loading state before the first life-context map appears.
+- [x] After AI timeline drafts are generated, the start guide explains how to click drafts, confirm people/time/classification, and archive only after review.
+- [x] First screen shows quick start plus `過往紀錄` save/search controls; no manual `打開時間軸與編輯工具` opener is visible.
+- [x] Quick generation and saved-record opening reveal the timeline/editing workspace and land on the timeline view.
+- [x] The first-screen saved-record area can `儲存為記錄`, search existing records, and open saved records without showing `另存新紀錄`.
+- [x] AI import entry is combined under `更多匯入方式`, and the editable draft area is labeled `修改編輯`.
+- [x] The editable draft removal action is labeled `不採用` instead of `略過`.
 - [x] Clicking an event-list card selects the event and focuses the matching item on the visual timeline.
 - [x] Multi-year or ongoing events have a visible `時間段` / `持續至今` period caption.
 - [x] Household-member list states that records can be edited after creation instead of deleted and rebuilt.
@@ -92,7 +111,7 @@
 - GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
-- Local app version: `v0.23-ai-input-merged`
+- Local app version: `v0.33-workspace-save-record`
 - Current production app version: `v0.23-ai-input-merged`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - v0.9 verification deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`

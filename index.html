@@ -15,66 +15,95 @@
         <div>
           <p class="eyebrow">馴錢師 / 社工協作</p>
           <h1>個案時間軸整理工具</h1>
-        </div>
-        <div class="top-actions" aria-label="主要操作">
-          <button class="icon-button" id="downloadExcel" type="button" title="下載 Excel">
-            <span aria-hidden="true">↓</span>
-            下載 Excel
-          </button>
-          <button class="icon-button quiet" id="resetSample" type="button" title="重設範例">
-            <span aria-hidden="true">↺</span>
-            載入範例測試包
-          </button>
-          <button class="icon-button quiet danger" id="clearExamplePack" type="button" title="刪除範例測試包">
-            <span aria-hidden="true">×</span>
-            刪除範例
-          </button>
+          <div class="release-badge" aria-label="版本資訊">
+            <span>測試版 v0.33</span>
+            <span>更新：2026/06/24 12:26</span>
+          </div>
         </div>
       </header>
 
-      <section class="notice-band" aria-label="公開版資料邊界">
-        <strong>公開版僅使用假資料。</strong>
-        <span>本版聚焦居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用、重大財務事件與同住人口；所有輸入保存在本機瀏覽器，下載 Excel 時不會上傳個案資料。</span>
-      </section>
-
       <section class="start-guide" aria-label="開始整理">
         <div class="start-guide-copy">
-          <p class="eyebrow">第一次使用建議</p>
-          <h2>先選一種方式開始整理個案歷程</h2>
-          <p>可以貼上紀錄讓 AI 先整理草稿，也可以直接新增人物或事件。AI 產生的內容會先停在待確認草稿，經社工確認人物、時間、分類與細節後才會加入時間軸。</p>
+          <p class="eyebrow">快速開始</p>
+          <h2>貼上資料，先看生命脈絡圖</h2>
+          <p>先不用填表格。貼上一段會談摘要、訪談筆記或測試文字，系統會整理成可檢視的初稿時間軸，再由社工確認人物、時間與分類。</p>
         </div>
-        <div class="start-steps" aria-label="整理流程">
-          <span><strong>1</strong> 匯入或新增資料</span>
-          <span><strong>2</strong> 確認人事時地物</span>
-          <span><strong>3</strong> 加入時間軸</span>
+        <div class="quick-generate" aria-label="快速生成生命脈絡圖">
+          <label for="quickIntakeText">快速貼上資料</label>
+          <textarea id="quickIntakeText" rows="4" placeholder="貼上去識別測試資料，例如：案主於115年取得中低收入戶；案母每月提供5000元生活費；案父108年負債500萬。"></textarea>
+          <div id="quickGenerateStatus" class="field-note">貼上資料後按「生成生命脈絡圖」。初稿只會先顯示在圖上，確認後才會歸檔。</div>
+          <div id="quickGenerateLoading" class="generate-loading" role="status" aria-live="polite" hidden>
+            <span class="spinner" aria-hidden="true"></span>
+            <span>正在整理事件、人物與年份...</span>
+          </div>
+          <div id="quickAdjustGuide" class="adjust-guide" hidden>
+            <strong>看到初稿後，可以這樣調整</strong>
+            <span>點時間軸上的「AI 初稿」，檢查人物、年份、結束時間與六個歷程分類。</span>
+            <span>確認無誤後再歸檔；不確定的事件可以先留在修改編輯區。</span>
+          </div>
         </div>
         <div class="start-actions" aria-label="開始操作">
-          <button class="primary" id="startAiFromGuide" type="button">貼上紀錄請 AI 整理</button>
-          <button class="ghost" id="startEventFromGuide" type="button">直接新增事件</button>
-          <button class="ghost" id="startStakeholderFromGuide" type="button">新增同住人口</button>
+          <button class="primary" id="quickGenerateTimeline" type="button">生成生命脈絡圖</button>
+          <button class="ghost" id="quickUseFixture" type="button">填入測試文字</button>
         </div>
       </section>
 
-      <section class="summary-grid" aria-label="摘要指標">
-        <div class="metric"><span>事件</span><strong id="metricEvents">0</strong></div>
-        <div class="metric"><span>決策節點</span><strong id="metricDecisions">0</strong></div>
-        <div class="metric green"><span>涵蓋歷程</span><strong id="metricCovered">0/6</strong></div>
-        <div class="metric amber"><span>財務事件</span><strong id="metricMoney">0</strong></div>
-        <div class="metric purple"><span>其他同住人口</span><strong id="metricStakeholders">0</strong></div>
-        <div class="metric blue"><span>待確認</span><strong id="metricPending">0</strong></div>
+      <section class="records-panel" aria-label="過往紀錄">
+        <div class="records-copy">
+          <p class="eyebrow">過往紀錄</p>
+          <h2>搜尋過往紀錄</h2>
+          <p>可先把目前整理存成一筆記錄，也可以搜尋這台瀏覽器內已有的個案整理。</p>
+        </div>
+        <div class="record-save-box">
+          <label>記錄名稱<input id="recordTitle" type="text" placeholder="例如：測試案 A、113 年債務協談練習" /></label>
+          <button class="primary" id="saveRecord" type="button">儲存為記錄</button>
+        </div>
+        <label class="record-search">搜尋過往紀錄<input id="recordSearch" type="search" placeholder="輸入整理名稱、事件標題或人物角色" /></label>
+        <div id="recordSearchStatus" class="field-note">記錄保存在此瀏覽器；若換裝置或清除瀏覽資料，請先下載 Excel 或圖檔備份。</div>
+        <div id="savedRecordList" class="record-list"></div>
       </section>
 
-      <nav class="tabs" aria-label="工作區切換">
-        <button class="tab active" data-tab="timeline" type="button">時間軸</button>
-        <button class="tab" data-tab="ai" type="button">AI 匯入</button>
-        <button class="tab" data-tab="stakeholders" type="button">同住人口</button>
-        <button class="tab" data-tab="events" type="button">事件資料</button>
-        <button class="tab" data-tab="context" type="button">歷程解讀</button>
-        <button class="tab" data-tab="decisions" type="button">決策節點</button>
-        <button class="tab" data-tab="safety" type="button">分享檢查</button>
-      </nav>
+      <section class="workbench-disclosure" id="workbenchPanel" aria-label="時間軸與編輯工具" hidden>
+        <div class="workbench-inner">
+          <details class="overview-disclosure">
+            <summary>目前資料概況</summary>
+            <section class="summary-grid" aria-label="摘要指標">
+              <div class="metric"><span>事件</span><strong id="metricEvents">0</strong></div>
+              <div class="metric"><span>決策／處遇</span><strong id="metricDecisions">0</strong></div>
+              <div class="metric green"><span>涵蓋歷程</span><strong id="metricCovered">0/6</strong></div>
+              <div class="metric amber"><span>財務事件</span><strong id="metricMoney">0</strong></div>
+              <div class="metric purple"><span>其他同住人口</span><strong id="metricStakeholders">0</strong></div>
+              <div class="metric blue"><span>待確認</span><strong id="metricPending">0</strong></div>
+            </section>
+          </details>
 
-      <section class="workspace active" id="tab-timeline">
+          <nav class="tabs" aria-label="工作區切換">
+            <button class="tab active" data-tab="timeline" type="button">時間軸</button>
+            <button class="tab" data-tab="ai" type="button">資料整理</button>
+            <button class="tab" data-tab="stakeholders" type="button">同住人口</button>
+            <button class="tab" data-tab="context" type="button">歷程解讀</button>
+            <button class="tab" data-tab="decisions" type="button">決策／處遇</button>
+            <button class="tab" data-tab="safety" type="button">分享檢查</button>
+            <details class="utility-menu download-menu">
+              <summary>下載檔案</summary>
+              <div class="top-actions" aria-label="下載檔案">
+                <button class="icon-button" id="downloadTimelinePng" type="button" title="下載時間軸 PNG 圖檔">
+                  <span aria-hidden="true">▣</span>
+                  下載 PNG
+                </button>
+                <button class="icon-button quiet" id="downloadTimelineSvg" type="button" title="下載時間軸 SVG 圖檔">
+                  <span aria-hidden="true">◇</span>
+                  下載 SVG
+                </button>
+                <button class="icon-button" id="downloadExcel" type="button" title="下載 Excel">
+                  <span aria-hidden="true">↓</span>
+                  下載 Excel
+                </button>
+              </div>
+            </details>
+          </nav>
+
+          <section class="workspace active" id="tab-timeline">
         <div class="timeline-layout">
           <section class="panel wide">
             <div class="section-head">
@@ -127,16 +156,20 @@
                 <button class="ghost" id="addTimelineStakeholder" type="button">新增同住人口</button>
               </div>
             </div>
+            <div class="button-row sample-actions" aria-label="測試範例包">
+              <button class="ghost" id="resetSample" type="button">載入測試範例包</button>
+              <button class="ghost danger-action" id="clearExamplePack" type="button">刪除範例</button>
+            </div>
             <div id="timelineEventList" class="timeline-event-list" aria-label="依歷程與人物分類的事件清單"></div>
           </section>
         </div>
-      </section>
+          </section>
 
-      <section class="workspace" id="tab-ai">
+          <section class="workspace" id="tab-ai">
         <div class="data-layout">
           <form class="panel form-panel" id="aiInputForm">
             <div class="section-head">
-              <h2>AI 輔助匯入</h2>
+              <h2>更多匯入方式</h2>
             </div>
             <label>貼上或匯入內容<textarea id="aiCombinedText" name="intakeText" rows="9" placeholder="貼上會談摘要、轉介單摘要、社工紀錄節錄或財務諮詢筆記；語音轉文字與檔案抽取內容也會累積在這裡。送出前請先刪除不該分析的個資。"></textarea></label>
             <label>上傳檔案
@@ -147,66 +180,18 @@
               <button class="ghost" id="startVoice" type="button">開始語音</button>
               <button class="ghost" id="stopVoice" type="button">停止</button>
             </div>
-            <div id="aiStatus" class="field-note">送出後只會產生待確認草稿，不會直接寫入時間軸。</div>
-            <button class="primary" type="submit">整理成待確認草稿</button>
+            <div id="aiStatus" class="field-note">送出後會先進入修改編輯區，不會直接寫入時間軸。</div>
+            <button class="primary" type="submit">整理成可修改內容</button>
           </form>
           <section class="panel cards-panel">
             <div class="section-head">
-              <h2>待確認草稿</h2>
-              <button class="ghost" id="clearDrafts" type="button">清除草稿</button>
+              <h2>修改編輯</h2>
+              <button class="ghost" id="clearDrafts" type="button">清除內容</button>
             </div>
             <div id="draftList" class="draft-list"></div>
           </section>
         </div>
-      </section>
-
-      <section class="workspace" id="tab-stakeholders">
-        <div class="data-layout">
-          <form class="panel form-panel" id="stakeholderForm">
-            <div class="section-head">
-              <h2>新增同住人口</h2>
-            </div>
-            <input name="stakeholderId" type="hidden" />
-            <label>稱謂或角色<input name="label" required value="主要照顧者" /></label>
-            <label>與案主關係
-              <select name="relation" required>
-                <option selected>主要照顧者</option>
-                <option>子女</option>
-                <option>配偶/伴侶</option>
-                <option>父母</option>
-                <option>手足/親屬</option>
-                <option>朋友/室友</option>
-                <option>被照顧者</option>
-                <option>其他同住者</option>
-              </select>
-            </label>
-            <label>同住狀態
-              <select name="stance">
-                <option selected>同住中</option>
-                <option>曾同住</option>
-                <option>暫住/借住</option>
-                <option>週期性同住</option>
-                <option>待確認</option>
-              </select>
-            </label>
-            <label>居住/照顧脈絡<textarea name="notes" rows="3">請用角色或稱謂描述，避免填入真實姓名、地址、電話或身分證字號。</textarea></label>
-            <div class="button-row">
-              <button class="primary" id="stakeholderSubmitButton" type="submit">新增同住人口</button>
-              <button class="ghost" id="cancelStakeholderEdit" type="button" hidden>取消編輯</button>
-            </div>
-          </form>
-          <section class="panel cards-panel">
-            <div class="section-head">
-              <h2>同住人口列表</h2>
-            </div>
-            <p class="field-note">新增後可在卡片中編輯角色、關係、同住狀態與照顧脈絡，不必刪除重建。</p>
-            <div id="stakeholderList" class="stakeholder-list"></div>
-          </section>
-        </div>
-      </section>
-
-      <section class="workspace" id="tab-events">
-        <div class="data-layout">
+        <div class="data-layout event-data-layout">
           <form class="panel form-panel" id="eventForm">
             <div class="section-head">
               <h2>新增事件</h2>
@@ -283,6 +268,51 @@
             </div>
           </section>
         </div>
+          </section>
+
+      <section class="workspace" id="tab-stakeholders">
+        <div class="data-layout">
+          <form class="panel form-panel" id="stakeholderForm">
+            <div class="section-head">
+              <h2>新增同住人口</h2>
+            </div>
+            <input name="stakeholderId" type="hidden" />
+            <label>稱謂或角色<input name="label" required value="主要照顧者" /></label>
+            <label>與案主關係
+              <select name="relation" required>
+                <option selected>主要照顧者</option>
+                <option>子女</option>
+                <option>配偶/伴侶</option>
+                <option>父母</option>
+                <option>手足/親屬</option>
+                <option>朋友/室友</option>
+                <option>被照顧者</option>
+                <option>其他同住者</option>
+              </select>
+            </label>
+            <label>同住狀態
+              <select name="stance">
+                <option selected>同住中</option>
+                <option>曾同住</option>
+                <option>暫住/借住</option>
+                <option>週期性同住</option>
+                <option>待確認</option>
+              </select>
+            </label>
+            <label>居住/照顧脈絡<textarea name="notes" rows="3">請用角色或稱謂描述，避免填入真實姓名、地址、電話或身分證字號。</textarea></label>
+            <div class="button-row">
+              <button class="primary" id="stakeholderSubmitButton" type="submit">新增同住人口</button>
+              <button class="ghost" id="cancelStakeholderEdit" type="button" hidden>取消編輯</button>
+            </div>
+          </form>
+          <section class="panel cards-panel">
+            <div class="section-head">
+              <h2>同住人口列表</h2>
+            </div>
+            <p class="field-note">新增後可在卡片中編輯角色、關係、同住狀態與照顧脈絡，不必刪除重建。</p>
+            <div id="stakeholderList" class="stakeholder-list"></div>
+          </section>
+        </div>
       </section>
 
       <section class="workspace" id="tab-context">
@@ -306,10 +336,10 @@
         <div class="data-layout">
           <form class="panel form-panel" id="decisionForm">
             <div class="section-head">
-              <h2>新增決策節點</h2>
+              <h2>新增決策／處遇</h2>
             </div>
             <label>連結事件 ID<input name="eventId" value="E001" /></label>
-            <label>決策問題<input name="question" required value="付款中斷後如何處理？" /></label>
+            <label>討論問題<input name="question" required value="付款中斷後如何處理？" /></label>
             <fieldset class="option-group">
               <legend>相關同住人口</legend>
               <div id="decisionStakeholderOptions" class="choice-grid"></div>
@@ -317,11 +347,12 @@
             <label>當時可行選項<textarea name="options" rows="2">繳最低、協商、求助、延後付款、暫停其他支出。</textarea></label>
             <label>最大擔心<textarea name="fear" rows="2">居住、照顧或工作安排中斷。</textarea></label>
             <label>脈絡解讀<textarea name="interpretation" rows="3">在短期安全與長期債務成本間取捨，需確認當時資訊與可行選項。</textarea></label>
-            <button class="primary" type="submit">新增決策卡</button>
+            <p class="field-note">可記錄案主當時的取捨，也可記錄與社工討論後形成的處遇方向；這裡不是自動評估或正式處遇結論。</p>
+            <button class="primary" type="submit">新增決策／處遇卡</button>
           </form>
           <section class="panel cards-panel">
             <div class="section-head">
-              <h2>決策節點卡</h2>
+              <h2>決策／處遇卡</h2>
             </div>
             <div id="decisionCards" class="decision-list"></div>
           </section>
@@ -335,6 +366,8 @@
             <button class="ghost" id="resetChecks" type="button">全部重置</button>
           </div>
           <div id="safetyList" class="check-list"></div>
+        </div>
+      </section>
         </div>
       </section>
       <div id="exportProbe" hidden aria-hidden="true"></div>

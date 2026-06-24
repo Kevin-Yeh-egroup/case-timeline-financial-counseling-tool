@@ -9,6 +9,9 @@ const DEFAULT_LANES = [
 
 const SENSITIVITY = ["一般", "內部", "高度敏感", "不可外部分享"];
 const CONFIDENCE = ["低", "中", "高"];
+const GEMINI_GENERATE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
 
 module.exports = async function handler(req, res) {
   setNoStore(res);
@@ -31,102 +34,146 @@ module.exports = async function handler(req, res) {
     return json(res, 400, { error: "input_too_short" });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return json(res, 200, {
-      mode: "local-fallback",
-      message: "OPENAI_API_KEY is not configured; frontend should use local semantic rules.",
-      events: [],
-      decisions: [],
-      warnings: ["尚未設定 AI API key，使用初步規則整理產生草稿。"]
-    });
-  }
-
   const clippedText = text.slice(0, 18000);
   const clippedWarning = clippedText.length < text.length ? "輸入過長，已先分析前 18,000 字元。" : "";
+  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const openAiApiKey = process.env.OPENAI_API_KEY;
+  const providers = buildProviderOrder(body.provider || process.env.AI_ANALYSIS_PROVIDER, {
+    hasGemini: Boolean(geminiApiKey),
+    hasOpenAi: Boolean(openAiApiKey)
+  });
 
-  try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5-mini",
-        store: false,
-        max_output_tokens: 2600,
-        input: [
-          {
-            role: "system",
-            content: [
-              {
-                type: "input_text",
-                text: [
-                  "你是台灣社工與財務健康諮詢的個案脈絡整理助手。",
-                  "任務是把資料整理成「待社工確認」的生命軸線草稿，不得直接下診斷、責備案主、提供投資或借貸建議。",
-                  "請使用繁體中文與台灣常用語，民國年可填數字；不確定就留空字串。",
-                  "若資料描述一段期間，請填 rocYear、endRocYear；若寫到至今、目前仍持續、仍在進行，ongoing 請填 true 並讓 endRocYear 留空。",
-                  "請特別辨識居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用、重大財務事件。",
-                  "同一句話若包含多個人物、多個年份或多個金額，請盡量拆成多筆事件，不要把案主、案母、案父的不同事件混成同一筆。",
-                  "請用事件核心分類：婚姻、交往、伴侶/親密關係才放感情與家庭史；親友提供生活費、負債、借貸、代繳、還款等即使涉及家人，主分類仍偏重大財務事件。",
-                  "例如「個案於115年取得中低收入戶、案母每月提供5000元生活費、案父108年負債500萬」應拆成三筆：個案社會資源使用、案母重大財務支持、案父重大財務事件。",
-                  "身心科、精神科、就醫、診斷、用藥、門診、住院、復健等主分類優先放疾病與身心健康史，不要誤放重大財務事件。",
-                  "若事件同時牽涉其他面向，請放在 relatedLanes；若使用者可能想新增自訂分類，請只放在 extraTags，不要替換六大主分類。",
-                  "每筆事件請保留 sourceText 原文摘錄，並整理 actorText、place、objects，方便社工確認人事時地物後再歸檔。",
-                  "請把個案決策理解為資源、風險、制度條件、關係壓力與能力限制下的選擇，不要用道德評價。"
-                ].join("\n")
-              }
-            ]
-          },
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: `請把以下資料整理為生命軸線待確認草稿。\n\n${clippedText}`
-              }
-            ]
-          }
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "case_timeline_analysis",
-            strict: true,
-            schema: analysisSchema(lanes)
-          }
-        }
-      })
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      return json(res, 502, {
-        mode: "openai-error",
-        message: data.error?.message || "OpenAI analysis failed.",
-        events: [],
-        decisions: [],
-        warnings: [clippedWarning].filter(Boolean)
-      });
-    }
-
-    const parsed = parseResponseJson(data);
-    const warnings = [
-      clippedWarning,
-      ...(Array.isArray(parsed.warnings) ? parsed.warnings : [])
-    ].filter(Boolean);
-
-    return json(res, 200, normalizeAnalysis(parsed, warnings));
-  } catch (error) {
-    return json(res, 502, {
-      mode: "openai-error",
-      message: error.message,
-      events: [],
-      decisions: [],
-      warnings: [clippedWarning].filter(Boolean)
-    });
+  if (!providers.length) {
+    return json(res, 200, localFallbackPayload(
+      "GEMINI_API_KEY / OPENAI_API_KEY is not configured; frontend should use local semantic rules.",
+      [clippedWarning, "尚未設定 AI API key，使用初步規則整理產生草稿。"].filter(Boolean)
+    ));
   }
+
+  const providerWarnings = [];
+  for (const provider of providers) {
+    try {
+      const analysis = provider === "gemini"
+        ? await runGeminiAnalysis(clippedText, lanes, [clippedWarning], geminiApiKey)
+        : await runOpenAiAnalysis(clippedText, lanes, [clippedWarning], openAiApiKey);
+      return json(res, 200, analysis);
+    } catch (error) {
+      providerWarnings.push(`${provider === "gemini" ? "Gemini" : "OpenAI"} 語意整理暫時無法完成：${error.message}`);
+    }
+  }
+
+  return json(res, 200, localFallbackPayload(
+    "AI analysis failed; frontend should use local semantic rules.",
+    [clippedWarning, ...providerWarnings, "已改用初步規則整理產生草稿。"].filter(Boolean)
+  ));
 };
+
+async function runGeminiAnalysis(text, lanes, baseWarnings, apiKey) {
+  const model = process.env.GEMINI_SEMANTIC_MODEL || process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+  const response = await fetch(`${GEMINI_GENERATE_URL}/${encodeURIComponent(model)}:generateContent`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": apiKey
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: [
+                analysisInstructions(),
+                "",
+                "請把以下資料整理為生命軸線待確認草稿，只輸出符合 schema 的 JSON，不要輸出 Markdown。",
+                "",
+                text
+              ].join("\n")
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        responseMimeType: "application/json",
+        responseJsonSchema: analysisSchema(lanes),
+        maxOutputTokens: 2600,
+        temperature: 0.2
+      }
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error?.message || data.message || `Gemini analysis failed with ${response.status}.`);
+  }
+  const parsed = JSON.parse(stripJsonFences(extractGeminiOutputText(data)));
+  return normalizeAnalysis(parsed, collectWarnings(parsed, baseWarnings), "gemini");
+}
+
+async function runOpenAiAnalysis(text, lanes, baseWarnings, apiKey) {
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
+      store: false,
+      max_output_tokens: 2600,
+      input: [
+        {
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text: analysisInstructions()
+            }
+          ]
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: `請把以下資料整理為生命軸線待確認草稿。\n\n${text}`
+            }
+          ]
+        }
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "case_timeline_analysis",
+          strict: true,
+          schema: analysisSchema(lanes)
+        }
+      }
+    })
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error?.message || data.message || `OpenAI analysis failed with ${response.status}.`);
+  }
+  const parsed = parseResponseJson(data);
+  return normalizeAnalysis(parsed, collectWarnings(parsed, baseWarnings), "openai");
+}
+
+function analysisInstructions() {
+  return [
+    "你是台灣社工與財務健康諮詢的個案脈絡整理助手。",
+    "任務是把資料整理成「待社工確認」的生命軸線草稿，不得直接下診斷、責備案主、提供投資或借貸建議。",
+    "請使用繁體中文與台灣常用語，民國年可填數字；不確定就留空字串。",
+    "若資料描述一段期間，請填 rocYear、endRocYear；若寫到至今、目前仍持續、仍在進行，ongoing 請填 true 並讓 endRocYear 留空。",
+    "請特別辨識居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用、重大財務事件。",
+    "同一句話若包含多個人物、多個年份或多個金額，請盡量拆成多筆事件，不要把案主、案母、案父的不同事件混成同一筆。",
+    "請用事件核心分類：婚姻、交往、伴侶/親密關係才放感情與家庭史；親友提供生活費、負債、借貸、代繳、還款等即使涉及家人，主分類仍偏重大財務事件。",
+    "例如「個案於115年取得中低收入戶、案母每月提供5000元生活費、案父108年負債500萬」應拆成三筆：個案社會資源使用、案母重大財務支持、案父重大財務事件。",
+    "身心科、精神科、就醫、診斷、用藥、門診、住院、復健等主分類優先放疾病與身心健康史，不要誤放重大財務事件。",
+    "若事件同時牽涉其他面向，請放在 relatedLanes；若使用者可能想新增自訂分類，請只放在 extraTags，不要替換六大主分類。",
+    "每筆事件請保留 sourceText 原文摘錄，並整理 actorText、place、objects，方便社工確認人事時地物後再歸檔。",
+    "請把個案決策理解為資源、風險、制度條件、關係壓力與能力限制下的選擇，不要用道德評價。"
+  ].join("\n");
+}
 
 function analysisSchema(lanes) {
   return {
@@ -208,9 +255,9 @@ function analysisSchema(lanes) {
   };
 }
 
-function normalizeAnalysis(parsed, warnings) {
+function normalizeAnalysis(parsed, warnings, mode) {
   return {
-    mode: "openai",
+    mode,
     events: (Array.isArray(parsed.events) ? parsed.events : []).map((item) => ({
       rocYear: String(item.rocYear || ""),
       endRocYear: String(item.endRocYear || ""),
@@ -243,6 +290,34 @@ function normalizeAnalysis(parsed, warnings) {
   };
 }
 
+function collectWarnings(parsed, baseWarnings) {
+  return [
+    ...(Array.isArray(baseWarnings) ? baseWarnings : []),
+    ...(Array.isArray(parsed.warnings) ? parsed.warnings : [])
+  ].filter(Boolean);
+}
+
+function buildProviderOrder(preferred, availability) {
+  const normalized = String(preferred || "").trim().toLowerCase();
+  const available = [];
+  if (availability.hasGemini) available.push("gemini");
+  if (availability.hasOpenAi) available.push("openai");
+  if (!available.length) return [];
+  if (normalized === "openai") return ["openai", "gemini"].filter((provider) => available.includes(provider));
+  if (normalized === "gemini") return ["gemini", "openai"].filter((provider) => available.includes(provider));
+  return available;
+}
+
+function localFallbackPayload(message, warnings) {
+  return {
+    mode: "local-fallback",
+    message,
+    events: [],
+    decisions: [],
+    warnings
+  };
+}
+
 function parseResponseJson(data) {
   const direct = typeof data.output_text === "string" ? data.output_text : "";
   const nested = direct || (Array.isArray(data.output)
@@ -251,6 +326,26 @@ function parseResponseJson(data) {
     : "");
   if (!nested) throw new Error("OpenAI response did not include output_text.");
   return JSON.parse(nested);
+}
+
+function extractGeminiOutputText(payload) {
+  const texts = [];
+  (payload.candidates || []).forEach((candidate) => {
+    (candidate.content?.parts || []).forEach((part) => {
+      if (part.text) texts.push(part.text);
+    });
+  });
+  const text = texts.join("\n").trim();
+  if (!text) throw new Error("Gemini response did not include text output.");
+  return text;
+}
+
+function stripJsonFences(text) {
+  return String(text || "")
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
 }
 
 async function readJsonBody(req) {

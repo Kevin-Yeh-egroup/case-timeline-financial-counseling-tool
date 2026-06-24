@@ -495,3 +495,209 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Production deployment `dpl_5xRdXMmMrWBne4WtKc2jBotbE5QR` was verified at `https://case-timeline-financial-counseling.vercel.app/`.
   - Stable URL HTTP check: returned `200`, `X-Robots-Tag: noindex, nofollow, noarchive`, expected `robots.txt`, `index.html` included `貼上或匯入內容`, and `app.js` included `v0.23-ai-input-merged`.
   - Production browser check: AI import form showed exactly `1` textarea, label `貼上或匯入內容`, submit button `整理成待確認草稿`, and no visible `文字輸入` / `待整理文字` labels in the input form.
+
+## v0.24 Version Badge
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 09:18
+- Update summary:
+  - Added a visible but unobtrusive header badge with `測試版 v0.24` and `更新：2026/06/24 09:18`.
+  - Placed the badge under the main title so testers can identify the reviewed build without interrupting the main workflow.
+  - Updated the local app version to `v0.24-version-badge`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Local HTTP check on `http://127.0.0.1:4181/`: `index.html` included `測試版 v0.24` and `更新：2026/06/24 09:18`; `app.js` included `v0.24-version-badge`.
+  - In-app browser desktop check: header rendered `測試版 v0.24 更新：2026/06/24 09:18`, the badge was visible under the title, and console errors/warnings were empty.
+  - Mobile browser check at `390px`: no whole-page horizontal overflow; the badge remained visible under the title without blocking the main actions.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at `v0.23-ai-input-merged` until Kevin explicitly asks for push/deploy.
+
+## v0.25 Gemini Semantic Analysis
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 09:40
+- Update summary:
+  - Added Gemini structured semantic analysis to `/api/analyze`.
+  - Gemini is preferred when `GEMINI_API_KEY` or `GOOGLE_API_KEY` is configured; default model is `gemini-2.5-flash`.
+  - Kept OpenAI Responses API as fallback or explicit provider override through `OPENAI_API_KEY` and optional `AI_ANALYSIS_PROVIDER=openai`.
+  - Kept browser-local semantic rules as the final fallback when no model API key is configured or model calls fail.
+  - Updated frontend AI result handling so `mode: "gemini"` drafts are accepted like `mode: "openai"` drafts instead of being replaced by local rules.
+  - Updated the visible test badge to `測試版 v0.25` and `更新：2026/06/24 09:40`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - Mock Gemini API test: `/api/analyze` selected `gemini-2.5-flash:generateContent`, sent `x-goog-api-key`, included structured output schema, and returned `mode: "gemini"` with a `社會資源使用歷程` draft.
+  - No-key API test: `/api/analyze` returned `mode: "local-fallback"` with `Cache-Control: no-store`.
+  - Local static preview on `http://127.0.0.1:4181/`: rendered `測試版 v0.25 更新：2026/06/24 09:40`.
+  - In-app browser AI import flow: pasted fake multi-actor text and clicked `整理成待確認草稿`; static preview fell back to local rules and produced `6` editable draft items, including separate welfare, living-expense support, father-debt, work, relationship, and decision drafts.
+  - Mobile browser check at `390px`: no whole-page horizontal overflow; version badge and AI import tab remained visible.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at `v0.23-ai-input-merged` until Kevin explicitly asks for push/deploy.
+
+## v0.26 Quick Life-Context Map And Image Export
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 10:16
+- Update summary:
+  - Reframed the first-use area around `生成生命脈絡圖` so testers can paste de-identified text and quickly see the first map.
+  - Added `填入測試文字` to reduce first-use hesitation during testing.
+  - AI event drafts with timeline years now appear on the visual timeline as a separate dashed `AI 初稿` preview layer before archiving.
+  - Timeline draft clicks open the matching draft card for review, edit, and archive.
+  - Draft cards now show the review summary and evidence first; detailed editing fields are collapsed under `修改草稿細節`.
+  - Added SVG and PNG timeline image downloads generated in-browser from a clean export renderer.
+  - Updated the visible test badge to `測試版 v0.26` and `更新：2026/06/24 10:16`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Local static preview on `http://127.0.0.1:4181/`: rendered `測試版 v0.26 更新：2026/06/24 10:16`, `生成生命脈絡圖`, and PNG/SVG download buttons.
+  - In-app browser quick-generate flow: clicked `填入測試文字` and `生成生命脈絡圖`; the tool stayed on the timeline and showed `8` visible `AI 初稿` preview items in the current saved test state.
+  - Timeline draft click flow: clicked a draft preview event and confirmed the app opened the matching draft card on the `AI 匯入` tab, with detailed fields collapsed under `修改草稿細節`.
+  - Export probe: `timelineSvgSize = 39342`, `timelineDraftPreviewCount = 8`, and `timelineLocators = 14` in the current saved test state.
+  - SVG download event was not reported by the in-app browser for blob downloads, matching the earlier Excel download-event limitation; clicking PNG produced no console errors.
+  - Mobile browser check at `390px`: no whole-page horizontal overflow; quick-generate textarea, `生成生命脈絡圖`, PNG, and SVG controls remained visible; timeline stayed internally scrollable.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at `v0.23-ai-input-merged` until Kevin explicitly asks for push/deploy.
+
+## v0.27 Simplified First-Run Flow
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 10:28
+- Update summary:
+  - Removed the visible `公開版僅使用假資料。` notice from the first screen.
+  - Kept the quick-paste flow as the main first action: paste text, generate the life-context map, then review AI drafts.
+  - Collapsed download/sample actions under `更多工具` so first-time testers are not confronted with every function at once.
+  - Added a visible loading state while the tool is generating the first life-context map.
+  - Added post-generation guidance explaining how to click `AI 初稿`, confirm people/time/classification, and archive only after review.
+  - Updated the visible test badge to `測試版 v0.27` and `更新：2026/06/24 10:28`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Wording scan found no visible app hits for `公開版僅使用假資料`, `假資料`, `泳道`, or `敏感度` in `index.html`, `app.js`, or `styles.css`.
+  - Local static preview on `http://127.0.0.1:4181/`: rendered `測試版 v0.27 更新：2026/06/24 10:28`, `貼上資料，先看生命脈絡圖`, and `更多工具`.
+  - First-screen check: visible text no longer included `公開版僅使用假資料。`; PNG/Excel actions were hidden until `更多工具` was opened; `目前資料概況` stayed collapsed.
+  - Quick-generate flow: clicked `填入測試文字` and `生成生命脈絡圖`; loading became visible immediately with the disabled button text `整理中...`.
+  - Completion state: fallback semantic analysis produced `6` editable draft cards, `4` visible AI draft timeline items, returned to the `時間軸` tab, and showed the post-generation adjustment guide.
+  - Export probe after generation: `timelineDraftPreviewCount = 4`, `timelineLocators = 10`, `quickAdjustGuideVisible = true`, `timelineSvgSize = 36707`, and XLSX MIME remained valid.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; `更多工具`, quick-paste textarea, and `生成生命脈絡圖` fit inside the viewport.
+  - Local static server note: `/api/analyze` returned `501` on POST because the preview server is static; the frontend handled this by using browser-local semantic rules as designed.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at `v0.23-ai-input-merged` until Kevin explicitly asks for push/deploy.
+
+## v0.28 Saved Records And First-Screen Layers
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 10:55
+- Update summary:
+  - Added browser-local saved records through `caseTimelineSavedRecords` so users can save the current timeline, search saved records, and load a previous record back into the workspace.
+  - Kept the current workspace state on a stable `caseTimelineToolState` key and added a legacy-state fallback scan so version updates are less likely to make unsaved work appear missing.
+  - Kept the first screen to `快速開始` and `過往紀錄`; timeline tabs, event lists, forms, downloads, and other tools are inside `打開時間軸與編輯工具`.
+  - Moved download/sample actions into the second-layer workspace under `更多工具`.
+  - Renamed `AI 輔助匯入` to `更多匯入方式` and renamed the editable draft area to `修改編輯`.
+  - Updated the visible test badge to `測試版 v0.28` and `更新：2026/06/24 10:55`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - First-screen browser check: `快速開始` and `過往紀錄` were visible; `workbenchPanel.open = false`; tabs and timeline were not visible; no visible `AI 輔助匯入` or `待確認草稿` text.
+  - Saved-record flow: entered `測試紀錄 v28`, clicked `儲存目前整理`, confirmed one saved record in `localStorage`, searched `v28`, and loaded the record back into the timeline workspace.
+  - More-import flow: opened `更多開始方式`, clicked `更多匯入方式`, and confirmed the workspace opened on `匯入與修改` with headings `更多匯入方式 / 修改編輯`.
+  - Quick-generate flow: generated from the test text, confirmed the workspace opened on `時間軸`, `6` editable items were created, `4` AI draft items appeared on the timeline, and the status used `可修改內容`.
+  - Export probe after generation: `savedRecordCount = 1`, `workbenchOpen = true`, `timelineDraftPreviewCount = 4`, and XLSX MIME remained valid.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; quick start, saved records, and the collapsed workspace entry fit the viewport.
+  - Local static server note: `/api/analyze` returned `501` on POST because the preview server is static; the frontend handled this by using browser-local semantic rules as designed.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
+
+## v0.32 Data Workspace And Downloads
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 12:12
+- Update summary:
+  - Renamed the visible `更多工具` menu to `下載檔案` and moved it beside `分享檢查` below `目前資料概況`.
+  - Kept `下載檔案` focused on PNG, SVG, and Excel downloads.
+  - Moved `載入測試範例包` and `刪除範例` above the timeline `事件清單`.
+  - Combined `匯入與修改` and `事件資料` into one `資料整理` workspace, keeping AI import, draft review, manual event form, and event table together.
+  - Renamed `決策節點` surfaces to `決策／處遇` and clarified that the section can record case-owner choices or social-worker discussion directions, not automated conclusions.
+  - Updated the visible test badge to `測試版 v0.32` and `更新：2026/06/24 12:12`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Local HTTP check on `http://127.0.0.1:4181/`: rendered `測試版 v0.32`, included `資料整理`, `下載檔案`, `決策／處遇`, exactly one `eventForm`, exactly one `eventsTable`, and no `data-tab="events"` or visible `更多工具`.
+  - Headless Chrome flow: generated from fake text, opened `下載檔案`, confirmed PNG/SVG/Excel actions were visible, confirmed sample-package actions were above `事件清單`, clicked `新增事件`, and landed on `資料整理` with draft list, event form, and event table visible.
+  - Decision/care wording check: opened `決策／處遇`, confirmed `討論問題` and the note that this is not an automated or formal intervention conclusion.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; `事件資料` tab stayed absent.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
+
+## v0.33 First-Screen Save Record
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 12:26
+- Update summary:
+  - Added `記錄名稱` and `儲存為記錄` back to the first-screen `過往紀錄` area.
+  - Kept the workbench tab row unchanged: `下載檔案` remains beside `分享檢查`, without an extra save button there.
+  - Saving creates a browser-local saved record when the current workspace has no active record, or updates the active saved record after it has been opened.
+  - Kept `過往紀錄` search and saved-record click-to-open behavior.
+  - Updated the visible test badge to `測試版 v0.33` and `更新：2026/06/24 12:26`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Local HTTP check on `http://127.0.0.1:4181/`: rendered `測試版 v0.33`, included `記錄名稱`, `儲存為記錄`, and `下載檔案`, and did not include a workbench `saveWorkspaceRecord` button.
+  - Headless Chrome save-record flow: typed `v033 首頁儲存測試`, clicked `儲存為記錄`, confirmed one browser-local saved record, searched `v033`, clicked the saved record card, and landed on `時間軸`.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; `記錄名稱` and `儲存為記錄` remained visible.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
+
+## v0.31 Draft Not-Adopted Label
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 11:51
+- Update summary:
+  - Changed editable draft action text from `略過` to `不採用` for both event drafts and decision drafts.
+  - Kept the behavior unchanged: the action removes that draft from the `修改編輯` list without deleting archived timeline events.
+  - Updated the visible test badge to `測試版 v0.31` and `更新：2026/06/24 11:51`.
+- Local verification:
+  - `node --check app.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Local HTTP check on `http://127.0.0.1:4181/`: rendered `測試版 v0.31` and did not render the old `測試版 v0.30` badge.
+  - Headless Chrome draft-review check: generated `3` editable draft cards from fake intake text, opened `匯入與修改`, confirmed `不採用` was visible in the draft list, and confirmed `略過` was not visible there.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
+
+## v0.30 Search-Only Saved Records
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 11:38
+- Update summary:
+  - Changed the first-screen `過往紀錄` area into search-only access for existing records.
+  - Removed `整理名稱`, `儲存目前整理`, and `另存新紀錄` from the first screen.
+  - Updated empty-state wording so users are not told to save a new record from the `過往紀錄` area.
+  - Kept saved-record search, click-to-open record cards, delete, and timeline entry behavior.
+  - Updated the visible test badge to `測試版 v0.30` and `更新：2026/06/24 11:38`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Local HTTP check on `http://127.0.0.1:4181/`: rendered `測試版 v0.30`, did not include `儲存目前整理`, `另存新紀錄`, or the manual workbench opener, and kept `搜尋過往紀錄`.
+  - Headless Chrome first-screen check: `#recordTitle` was absent, `#recordSearch` was present, the workspace remained hidden, and the empty state said existing records only.
+  - Saved-record search flow: injected one fake browser-local saved record, searched `v030`, confirmed one record card, clicked the card, and landed on the `時間軸` view with the timeline visible.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; save/save-as actions stayed absent and the workspace stayed hidden on first entry.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
+
+## v0.29 Launch-Gated Workbench
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 11:27
+- Update summary:
+  - Removed the visible manual `打開時間軸與編輯工具` opener from the first screen.
+  - Removed first-screen `更多開始方式` actions so initial use is limited to quick generation and saved records.
+  - Changed the workspace from a visible `<details>` opener into a hidden section that is revealed only after quick generation or saved-record opening.
+  - Made saved-record cards themselves clickable and keyboard-openable, with the button text changed to `打開此案`.
+  - Updated the visible test badge to `測試版 v0.29` and `更新：2026/06/24 11:27`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Headless Chrome first-screen check on `http://127.0.0.1:4181/`: rendered `測試版 v0.29`, showed `快速開始` and `過往紀錄`, did not show `打開時間軸與編輯工具` or `更多開始方式`, and kept timeline tabs/chart hidden.
+  - Quick-generation human-flow check: pasted fake multi-year text, clicked `生成生命脈絡圖`, received `已產生 5 筆可修改內容；圖上共有 3 筆 AI 初稿可先檢視。`, and landed on the `時間軸` view with the timeline visible.
+  - Saved-record flow check: saved `v029 測試個案`, reloaded the page back to a first-screen-only state, clicked the saved record card, and landed on the `時間軸` view with the timeline visible.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; first screen kept the workspace hidden and did not show the manual workbench opener.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
