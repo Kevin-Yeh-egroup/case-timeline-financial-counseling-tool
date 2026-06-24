@@ -645,7 +645,13 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Download check: Excel suggested filename was `case-timeline-tool-2026-06-24.xlsx`.
   - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; `儲存為記錄` and `下載檔案` remained visible.
 - GitHub/Vercel deployment:
-  - Not performed in this update. Production remains at `v0.33-workspace-save-record` until Kevin asks for commit/deploy.
+  - GitHub commit `78934a9` was pushed to `origin/main`.
+  - Production deployment completed with Vercel deployment `dpl_GZPvTQMHjQpfdFkNDqk7N3R6Eygk`.
+  - Stable production URL: `https://case-timeline-financial-counseling.vercel.app/`.
+  - Deployment URL: `https://case-timeline-financial-counseling-tool-9ki0c5awz.vercel.app/`.
+  - Production HTTP check: stable URL returned `200`, rendered `測試版 v0.35`, included `台北時間`, included `record-save-inline`, did not include `record-save-box`, and kept `X-Robots-Tag: noindex, nofollow, noarchive`.
+  - Production `robots.txt`: returned `User-agent: *` and `Disallow: /`.
+  - Production headless Chrome flow: first screen had no save controls, generated a timeline, saved `prod v035 台北時間測試`, restored the saved record, downloaded `case-timeline-tool-2026-06-24.xlsx`, and mobile `390px` had no whole-page horizontal overflow.
 
 ## v0.34 Workbench Save Record Placement
 

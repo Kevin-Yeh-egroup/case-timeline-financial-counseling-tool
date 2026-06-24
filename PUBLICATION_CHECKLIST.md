@@ -112,11 +112,12 @@
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
 - Local app version: `v0.35-taipei-time`
-- Current production app version: `v0.33-workspace-save-record`
+- Current production app version: `v0.35-taipei-time`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - v0.9 verification deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`
 - v0.22 verification deployment inspected: `dpl_DctqioCLFfC75bREzQUc5N85sF96`
 - v0.23 verification deployment inspected: `dpl_5xRdXMmMrWBne4WtKc2jBotbE5QR`
 - v0.33 verification deployment inspected: `dpl_HzwFNF9uFXZ3AZuVD5wHzh4vaW9K`
+- v0.35 verification deployment inspected: `dpl_GZPvTQMHjQpfdFkNDqk7N3R6Eygk`
 - Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`
 - Production target: `Ready`
