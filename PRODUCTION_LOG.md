@@ -644,7 +644,14 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Headless Chrome save-record flow: typed `v033 首頁儲存測試`, clicked `儲存為記錄`, confirmed one browser-local saved record, searched `v033`, clicked the saved record card, and landed on `時間軸`.
   - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; `記錄名稱` and `儲存為記錄` remained visible.
 - GitHub/Vercel deployment:
-  - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
+  - GitHub commit `dae34f8` was pushed to `origin/main`.
+  - Production deployment completed with Vercel deployment `dpl_HzwFNF9uFXZ3AZuVD5wHzh4vaW9K`.
+  - Stable production URL: `https://case-timeline-financial-counseling.vercel.app/`.
+  - Deployment URL: `https://case-timeline-financial-counseling-tool-qdwuzbcj6.vercel.app/`.
+  - Vercel inspect URL: `https://vercel.com/egroup-task3s-projects/case-timeline-financial-counseling-tool/HzwFNF9uFXZ3AZuVD5wHzh4vaW9K`.
+  - Production HTTP check: stable URL returned `200`, rendered `測試版 v0.33`, and kept `X-Robots-Tag: noindex, nofollow, noarchive`.
+  - Production `robots.txt`: returned `User-agent: *` and `Disallow: /`.
+  - Production headless Chrome flow: generated fake text, saved `prod v033 測試記錄`, opened `下載檔案`, and mobile `390px` had no whole-page horizontal overflow.
 
 ## v0.31 Draft Not-Adopted Label
 
