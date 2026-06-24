@@ -143,6 +143,10 @@ h2 {
   position: relative;
 }
 
+.tabs .download-menu {
+  margin-left: 0;
+}
+
 .utility-menu summary,
 .overview-disclosure summary {
   list-style: none;
@@ -400,15 +404,6 @@ h2 {
   line-height: 1.65;
 }
 
-.record-save-box {
-  display: grid;
-  gap: 8px;
-}
-
-.record-save-box .primary {
-  width: fit-content;
-}
-
 .record-search {
   align-self: stretch;
 }
@@ -551,6 +546,37 @@ h2 {
   flex-wrap: wrap;
   gap: 6px;
   overflow: visible;
+}
+
+.record-save-inline {
+  display: flex;
+  flex: 1 1 360px;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.record-save-inline label {
+  width: min(310px, 100%);
+}
+
+.record-save-inline label span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.record-save-inline input {
+  min-height: 38px;
+}
+
+.record-save-inline .primary {
+  flex: 0 0 auto;
+  margin-top: 21px;
+  white-space: nowrap;
 }
 
 .tab {
@@ -2064,6 +2090,11 @@ tbody tr:nth-child(even) {
     max-width: 100%;
   }
 
+  .record-save-inline {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
   .utility-menu[open] .top-actions {
     justify-content: flex-start;
   }
@@ -2124,6 +2155,20 @@ tbody tr:nth-child(even) {
 
   .top-actions {
     justify-content: flex-start;
+  }
+
+  .record-save-inline {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .record-save-inline label,
+  .record-save-inline .primary {
+    width: 100%;
+  }
+
+  .record-save-inline .primary {
+    margin-top: 0;
   }
 
   h1 {

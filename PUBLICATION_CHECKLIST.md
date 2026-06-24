@@ -80,9 +80,9 @@
 - [x] Decision-node surfaces are labeled `決策／處遇` with wording that clarifies this can record case-owner choices or social-worker discussion directions, not automated conclusions.
 - [x] Quick generation shows a loading state before the first life-context map appears.
 - [x] After AI timeline drafts are generated, the start guide explains how to click drafts, confirm people/time/classification, and archive only after review.
-- [x] First screen shows quick start plus `過往紀錄` save/search controls; no manual `打開時間軸與編輯工具` opener is visible.
+- [x] First screen shows quick start plus `過往紀錄` search controls only; no manual `打開時間軸與編輯工具` opener is visible.
 - [x] Quick generation and saved-record opening reveal the timeline/editing workspace and land on the timeline view.
-- [x] The first-screen saved-record area can `儲存為記錄`, search existing records, and open saved records without showing `另存新紀錄`.
+- [x] The workbench action row can `儲存為記錄`; the first-screen saved-record area only searches and opens existing records.
 - [x] AI import entry is combined under `更多匯入方式`, and the editable draft area is labeled `修改編輯`.
 - [x] The editable draft removal action is labeled `不採用` instead of `略過`.
 - [x] Clicking an event-list card selects the event and focuses the matching item on the visual timeline.
@@ -111,7 +111,7 @@
 - GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
 - Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
 - Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
-- Local app version: `v0.33-workspace-save-record`
+- Local app version: `v0.35-taipei-time`
 - Current production app version: `v0.33-workspace-save-record`
 - Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
 - v0.9 verification deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`

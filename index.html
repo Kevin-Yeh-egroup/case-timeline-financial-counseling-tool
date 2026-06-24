@@ -16,8 +16,8 @@
           <p class="eyebrow">馴錢師 / 社工協作</p>
           <h1>個案時間軸整理工具</h1>
           <div class="release-badge" aria-label="版本資訊">
-            <span>測試版 v0.33</span>
-            <span>更新：2026/06/24 12:26</span>
+            <span>測試版 v0.35</span>
+            <span>更新：2026/06/24 14:16（台北時間）</span>
           </div>
         </div>
       </header>
@@ -52,11 +52,7 @@
         <div class="records-copy">
           <p class="eyebrow">過往紀錄</p>
           <h2>搜尋過往紀錄</h2>
-          <p>可先把目前整理存成一筆記錄，也可以搜尋這台瀏覽器內已有的個案整理。</p>
-        </div>
-        <div class="record-save-box">
-          <label>記錄名稱<input id="recordTitle" type="text" placeholder="例如：測試案 A、113 年債務協談練習" /></label>
-          <button class="primary" id="saveRecord" type="button">儲存為記錄</button>
+          <p>搜尋這台瀏覽器內已有的個案整理，點選後會直接回到該案的時間軸與編輯工具。</p>
         </div>
         <label class="record-search">搜尋過往紀錄<input id="recordSearch" type="search" placeholder="輸入整理名稱、事件標題或人物角色" /></label>
         <div id="recordSearchStatus" class="field-note">記錄保存在此瀏覽器；若換裝置或清除瀏覽資料，請先下載 Excel 或圖檔備份。</div>
@@ -84,6 +80,10 @@
             <button class="tab" data-tab="context" type="button">歷程解讀</button>
             <button class="tab" data-tab="decisions" type="button">決策／處遇</button>
             <button class="tab" data-tab="safety" type="button">分享檢查</button>
+            <div class="record-save-inline" aria-label="儲存目前整理">
+              <label><span>記錄名稱</span><input id="recordTitle" type="text" placeholder="例如：測試案 A、113 年債務協談練習" /></label>
+              <button class="primary" id="saveRecord" type="button">儲存為記錄</button>
+            </div>
             <details class="utility-menu download-menu">
               <summary>下載檔案</summary>
               <div class="top-actions" aria-label="下載檔案">

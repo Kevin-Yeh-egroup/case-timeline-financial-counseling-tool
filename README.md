@@ -14,7 +14,7 @@ Public-safe static web tool for Taiwan social workers, financial-health counselo
 - Timeline image downloads are generated in the browser as SVG and PNG for reports, presentations, and review notes.
 - Real-case handling should follow the responsible institution's privacy, supervision, and record-keeping rules.
 - Review-stage noindex controls are intentionally enabled.
-- Version `v0.33` places `儲存為記錄` back in the first-screen `過往紀錄` area so users can save the current workspace and later find it through saved-record search.
+- Version `v0.35` keeps visible record/update times and download filename dates on Taipei time.
 - Version `v0.32` moves downloads to a `下載檔案` menu beside sharing checks, moves sample-package actions above the timeline event list, combines AI import/draft review with event data under `資料整理`, and renames decision surfaces to `決策／處遇`.
 - Version `v0.31` changes the editable draft removal action from `略過` to `不採用` so the review decision reads more clearly.
 - Version `v0.30` changes the first-screen saved-record area into search-only access for existing records; save and save-as controls are no longer shown there.

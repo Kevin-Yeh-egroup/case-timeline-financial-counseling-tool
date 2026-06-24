@@ -627,6 +627,45 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
 - GitHub/Vercel deployment:
   - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
 
+## v0.35 Taipei Time Display
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 14:16 台北時間
+- Update summary:
+  - Updated the visible test badge to `測試版 v0.35` and `更新：2026/06/24 14:16（台北時間）`.
+  - Added shared Taipei-time helpers so visible saved-record timestamps use `Asia/Taipei`.
+  - Kept saved-record storage in ISO format, but rendered record-card times as `台北時間`.
+  - Updated Excel, SVG, and PNG download filenames to use Taipei-date stamps instead of UTC date slices.
+  - Updated the fallback current ROC year helper to use Taipei calendar date.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Local HTTP check on `http://127.0.0.1:4181/`: rendered `測試版 v0.35`, included `台北時間`, included `record-save-inline`, and did not include `record-save-box`.
+  - Headless Chrome flow on `vercel dev`: first screen had no save controls; after quick generation, saved `v035 台北時間測試`, and the saved record card displayed `2026/06/24 14:17 台北時間`.
+  - Download check: Excel suggested filename was `case-timeline-tool-2026-06-24.xlsx`.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; `儲存為記錄` and `下載檔案` remained visible.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at `v0.33-workspace-save-record` until Kevin asks for commit/deploy.
+
+## v0.34 Workbench Save Record Placement
+
+- Date: 2026-06-24
+- Update time: 2026/06/24 14:08
+- Update summary:
+  - Removed `記錄名稱` and `儲存為記錄` from the first-screen `過往紀錄` area.
+  - Kept the first-screen record area focused on `搜尋過往紀錄` only.
+  - Moved `記錄名稱` and `儲存為記錄` into the workbench action row immediately before `下載檔案`.
+  - Updated the visible test badge to `測試版 v0.34` and `更新：2026/06/24 14:08`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Local HTTP check on `http://127.0.0.1:4182/`: rendered `測試版 v0.34`, included `record-save-inline`, and did not include `record-save-box`.
+  - Headless Chrome flow on `vercel dev`: first screen had no `儲存為記錄` or `記錄名稱`; after quick generation, the workbench showed `記錄名稱`, `儲存為記錄`, and `下載檔案`, with save controls positioned before the download menu.
+  - Save/load flow: saved `v034 工作區儲存測試`, searched `v034`, opened the saved record card, and returned to the `時間軸` tab with the saved title restored.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; `儲存為記錄` and `下載檔案` remained visible.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at `v0.33-workspace-save-record` until Kevin asks for commit/deploy.
+
 ## v0.33 First-Screen Save Record
 
 - Date: 2026-06-24

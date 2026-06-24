@@ -1,8 +1,9 @@
-const CURRENT_STATE_VERSION = "v0.33-workspace-save-record";
+const CURRENT_STATE_VERSION = "v0.35-taipei-time";
 const CURRENT_STATE_KEY = "caseTimelineToolState";
 const LEGACY_STATE_KEY_PREFIX = "caseTimelineToolState:";
 const SAVED_RECORDS_KEY = "caseTimelineSavedRecords";
 const MAX_SAVED_RECORDS = 40;
+const TAIPEI_TIME_ZONE = "Asia/Taipei";
 const QUICK_FIXTURE_TEXT = [
   "多人物事件拆分測試資料，僅供工具測試使用。",
   "",
@@ -537,17 +538,33 @@ function suggestedRecordTitle() {
   return `${primary}生命脈絡整理 ${yearText}`;
 }
 
-function formatLocalDateTime(iso) {
+function taipeiDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("zh-TW", {
+    timeZone: TAIPEI_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  return Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+}
+
+function taipeiDateStamp(date = new Date()) {
+  const parts = taipeiDateParts(date);
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function formatTaipeiDateTime(iso) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("zh-TW", {
+  return `${date.toLocaleString("zh-TW", {
+    timeZone: TAIPEI_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false
-  });
+  })} 台北時間`;
 }
 
 function savedRecordSearchText(record) {
@@ -652,7 +669,7 @@ function normalizeLane(lane) {
 }
 
 function currentRocYear() {
-  return new Date().getFullYear() - 1911;
+  return Number(taipeiDateParts().year) - 1911;
 }
 
 function numberOrEmpty(value) {
@@ -920,7 +937,7 @@ function renderSavedRecords() {
         <div>
           <h3>${esc(record.title)}</h3>
           <p>${esc(record.summary || savedRecordSummary(record.state))}</p>
-          <span>${esc(formatLocalDateTime(record.updatedAt))}${isActive ? "｜目前工作區" : ""}</span>
+          <span>${esc(formatTaipeiDateTime(record.updatedAt))}${isActive ? "｜目前工作區" : ""}</span>
         </div>
         <div class="record-card-actions">
           <button class="primary" type="button" data-load-record="${esc(record.id)}">打開此案</button>
@@ -2624,7 +2641,7 @@ function bindEvents() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `case-timeline-tool-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `case-timeline-tool-${taipeiDateStamp()}.xlsx`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -3263,7 +3280,7 @@ function downloadBlob(blob, filename) {
 
 function downloadTimelineSvg() {
   const { svg } = buildTimelineSvgExport();
-  downloadBlob(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }), `case-timeline-${new Date().toISOString().slice(0, 10)}.svg`);
+  downloadBlob(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }), `case-timeline-${taipeiDateStamp()}.svg`);
 }
 
 function downloadTimelinePng() {
@@ -3281,7 +3298,7 @@ function downloadTimelinePng() {
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
     canvas.toBlob((blob) => {
-      if (blob) downloadBlob(blob, `case-timeline-${new Date().toISOString().slice(0, 10)}.png`);
+      if (blob) downloadBlob(blob, `case-timeline-${taipeiDateStamp()}.png`);
     }, "image/png");
   };
   image.onerror = () => {
