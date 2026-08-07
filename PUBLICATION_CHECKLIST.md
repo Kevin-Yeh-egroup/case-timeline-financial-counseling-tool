@@ -1,123 +1,53 @@
-# Publication Checklist
+# v0.40 預覽驗收清單
 
-## Sensitivity
+## 範圍
 
-- [x] Public-safe sample data only.
-- [x] No raw InfoCenter links or training transcripts.
-- [x] No real case names, addresses, identifiers, debt documents, medical data, or service records.
-- [x] Tool states that noindex is not privacy protection.
+- [x] 每筆事件可見欄位只有：年度、月份、事件人物、事件大分類、事件摘要。
+- [x] 決策／處遇、影響、待釐清、信心、敏感度、起訖年、年齡、事件清單、檔案匯入與匯出已退出本版介面。
+- [x] 手動表單、AI 草稿、摘要 dialog 與 API 使用同一組五欄。
+- [x] 月份未知時保留空白／月份待確認，不自動猜測。
 
-## Review-Stage Noindex
+## 輸入
 
-- [x] HTML meta robots: `noindex,nofollow,noarchive`
-- [x] `robots.txt`: `Disallow: /`
-- [x] Vercel header: `X-Robots-Tag: noindex, nofollow, noarchive`
+- [x] 首層只讓使用者選「手動輸入」或「AI 分析」。
+- [x] AI 助人者專區提供文字與語音兩種輸入方式。
+- [x] 語音辨識結果先進入可修改文字框，不直接加入時間軸。
+- [x] AI 分析只產生待人工確認的五欄草稿。
+- [x] AI 分析進行中鎖定切換與返回，避免過期回應改變目前流程。
+- [x] 不要求使用者先自行去識別，畫面不呈現去識別通知卡。
+- [x] 手動、AI 文字與語音資料保留原始姓名與事件內容，供登入後工作流程使用。
 
-## Functional Checks
+## 閱讀與互動
 
-- [x] Local browser opens root page.
-- [x] Timeline renders sample events.
-- [x] Add event updates metrics, timeline, and chart.
-- [x] Decision node form adds a card.
-- [x] Excel export probe produces `.xlsx` MIME and non-empty Blob.
-- [x] Mobile width remains usable.
-- [x] Six-history guide renders on the context tab.
-- [x] Excel export includes event impact, unknowns, six-history guide, and research summary sheets.
-- [x] AI import tab accepts text, file upload, and voice input controls.
-- [x] AI analysis creates editable drafts instead of directly modifying the timeline.
-- [x] Confirming a draft adds it to the timeline or decision-card list.
-- [x] Excel export includes a `修改編輯` sheet.
-- [x] Header shows a visible but unobtrusive version/update-time badge for testers.
-- [x] Tool focuses the people layer on household members/cohabitants first.
-- [x] Events and decision cards can link to related household members.
-- [x] Excel export includes a `同住人口` sheet and household-member columns.
-- [x] Timeline can set a primary person and add related household members.
-- [x] Multi-person timeline uses `一起呈現` so primary-person events, added-person events, and shared events stay visible together with distinct styles.
-- [x] Clicking a timeline event opens an event summary and edit entry point.
-- [x] Timeline grid keeps full borders through empty years.
-- [x] Timeline side panel shows a classified event list instead of a history-distribution bar chart.
-- [x] Taiwan system background can appear as an optional reference timeline and export flag.
-- [x] Event list supports in-place summary review and quick editing without switching tabs.
-- [x] Events can record start year, end year, or ongoing status.
-- [x] Timeline shows multi-year or continuing events as one clickable period bar instead of repeating one marker per year.
-- [x] Excel export includes start/end/ongoing fields for events and drafts.
-- [x] Timeline year headers include `年` in ROC/AD display.
-- [x] Clicking a visible timeline event keeps page scroll position while syncing the event list selection.
-- [x] Sample content is separated as a reloadable/deletable `範例測試包`.
-- [x] Legacy sample content from earlier browser state is recognized and can be batch-deleted as sample data.
-- [x] Multi-year fake intake fixtures are available in TXT, XLSX, and DOCX formats for import testing.
-- [x] Local semantic import creates editable drafts for multi-year and ongoing events before timeline insertion.
-- [x] Import drafts require confirmation of people, event facts, time, place, objects, and six-history classification before archiving.
-- [x] Relationship-family classification is limited to marriage, dating, partner, separation, divorce, and intimate-relationship context; family money support is treated as major financial context.
-- [x] Drafts can record related history dimensions and extra tags without replacing the six main dimensions.
-- [x] Household/cohabitant records can be edited after creation.
-- [x] Timeline duration events keep stable vertical positions across years to reduce misreading from row jumps.
-- [x] Multi-actor fake intake fixture is available for testing case-owner, mother, father, work, and relationship events in one import.
-- [x] Events without a confirmed start year stay out of the visual timeline and are marked as not shown on the visual timeline in the event list.
-- [x] Draft event cards can be split into two editable drafts or merged with the next event draft.
-- [x] Draft actor prompts can add an unlinked person as a household member or link the draft to an existing household member.
-- [x] Draft event cards show a pre-archive review strip for `人物`, `事件`, `時間`, `時地物`, and `分類`.
-- [x] Mixed multi-person or multi-money AI drafts are re-split on the frontend before review.
-- [x] AI/API prompt explicitly separates case-owner welfare status, mother's living-expense support, and father's debt into separate drafts.
-- [x] Health terms such as `身心科`, `精神科`, `診斷`, `用藥`, and `門診` classify as `疾病與身心健康史`.
-- [x] Drafts with warnings ask for confirmation before archiving into the timeline.
-- [x] Interface uses a project-local generated masthead asset and warmer colors without adding readable fake case data to the image.
-- [x] Visual polish keeps timeline, event list, and draft review flows as the first-screen working surface rather than turning the app into a landing page.
-- [x] AI import uses one combined text area for pasted notes, extracted file text, and speech-to-text content.
-- [x] AI import can use Gemini 2.5 Flash structured output when `GEMINI_API_KEY` or `GOOGLE_API_KEY` is configured.
-- [x] AI import keeps OpenAI structured output as a fallback or explicit provider override.
-- [x] AI import falls back to browser-local semantic rules when no model API key is configured or all model calls fail.
-- [x] First-use flow centers on quickly generating the first life-context map before detailed editing.
-- [x] AI event drafts with confirmed years appear on the timeline as a visually distinct `AI 初稿` preview layer.
-- [x] Draft cards show review summary first and keep detailed editing fields collapsed by default.
-- [x] Timeline can be downloaded as SVG and PNG image files in addition to Excel.
-- [x] Timeline screen has direct `新增事件` and `新增同住人口` entry points.
-- [x] First-use start guide centers on quick paste and generation instead of showing the full editing workflow upfront.
-- [x] First screen does not expose AI import, direct-add, or manual workbench entry buttons before generation or record loading.
-- [x] First screen no longer shows the visible `公開版僅使用假資料。` notice.
-- [x] Download actions are under `下載檔案` beside `分享檢查`; sample reload/deletion actions sit above the timeline event list.
-- [x] AI import, draft review, manual event form, and event table are combined under the `資料整理` workspace.
-- [x] Decision-node surfaces are labeled `決策／處遇` with wording that clarifies this can record case-owner choices or social-worker discussion directions, not automated conclusions.
-- [x] Quick generation shows a loading state before the first life-context map appears.
-- [x] After AI timeline drafts are generated, the start guide explains how to click drafts, confirm people/time/classification, and archive only after review.
-- [x] First screen shows quick start plus `過往紀錄` search controls only; no manual `打開時間軸與編輯工具` opener is visible.
-- [x] Quick generation and saved-record opening reveal the timeline/editing workspace and land on the timeline view.
-- [x] The workbench action row can `儲存為記錄`; the first-screen saved-record area only searches and opens existing records.
-- [x] AI import entry is combined under `更多匯入方式`, and the editable draft area is labeled `修改編輯`.
-- [x] The editable draft removal action is labeled `不採用` instead of `略過`.
-- [x] Clicking an event-list card selects the event and focuses the matching item on the visual timeline.
-- [x] Multi-year or ongoing events have a visible `時間段` / `持續至今` period caption.
-- [x] Household-member list states that records can be edited after creation instead of deleted and rebuilt.
-- [x] Timeline has a `全案總覽（所有事件）` view that keeps all events visible instead of hiding added people's events.
-- [x] Timeline relation styles include a distinct `全案事件` state separate from `主軸人物`, `加入人物`, and `共同事件`.
-- [x] Timeline year headers and left-side classification labels stay visible while scrolling the timeline grid.
-- [x] Same-category timeline events are packed into non-overlapping rows so ended events do not force every later event downward.
-- [x] Linked decision nodes appear as their own timeline row when their connected event is visible.
-- [x] Export probe includes `caseAxisEventCount` and `timelineDecisionCount`.
-- [x] Per-event sensitivity is no longer presented in the main workflow; `下一步` wording is changed to `建議多確認`.
-- [x] `建議多確認` is the only visible clarification label; the content directly lists details to confirm, with `協助判斷` only in the expanded summary.
-- [x] Event list, expanded summaries, event tables, and Excel exports explicitly show `事件人物` for each event.
-- [x] Event table places `事件人物` as a standalone column between `ID` and `期間`.
-- [x] API routes return no-store JSON responses.
-- [x] Taiwan wording pass removes reader-facing `泳道`, engineering terms, and awkward field labels.
-- [x] Production URL returns `200 OK`.
-- [x] Production URL has `X-Robots-Tag`.
-- [x] Production `robots.txt` returns expected content.
-- [x] Production browser check renders timeline and decision cards.
-- [x] Production Excel export probe produces `.xlsx` MIME and non-empty Blob.
+- [x] 閱讀首頁只顯示概況、篩選與時間軸，不常駐事件全文清單。
+- [x] 事件分類以文字列標示，不只靠顏色區分。
+- [x] 事件按鈕顯示月份與人物；點擊、Enter 或 Space 才開啟五欄摘要。
+- [x] 摘要 dialog 關閉後將焦點還給原事件。
+- [x] 事件按鈕的 accessible name 包含年月、分類、人物與查看摘要。
+- [x] 時間軸上方提供同步橫向捲動軌、較早／較晚按鈕及方向鍵操作。
+- [x] `prefers-reduced-motion` 下移除非必要平滑捲動與動畫。
 
-## Production
+## 相容與安全
 
-- GitHub repo: `https://github.com/Kevin-Yeh-egroup/case-timeline-financial-counseling-tool`
-- Vercel project: `egroup-task3s-projects/case-timeline-financial-counseling-tool`
-- Stable URL: `https://case-timeline-financial-counseling.vercel.app/`
-- Local app version: `v0.35-taipei-time`
-- Current production app version: `v0.35-taipei-time`
-- Initial deployment inspected: `dpl_GkfmP9HzhJpJy24VGqvNSJUzKsSR`
-- v0.9 verification deployment inspected: `dpl_88jH7272GGgmd5Z3r8hKh1V66PzL`
-- v0.22 verification deployment inspected: `dpl_DctqioCLFfC75bREzQUc5N85sF96`
-- v0.23 verification deployment inspected: `dpl_5xRdXMmMrWBne4WtKc2jBotbE5QR`
-- v0.33 verification deployment inspected: `dpl_HzwFNF9uFXZ3AZuVD5wHzh4vaW9K`
-- v0.35 verification deployment inspected: `dpl_GZPvTQMHjQpfdFkNDqk7N3R6Eygk`
-- Project ID: `prj_5vg0uJ8VbfoUJslBxwiWiL84JShV`
-- Production target: `Ready`
+- [x] 保留舊 `caseTimelineToolState`，只讀取並遷移到新 key，不清除或覆寫舊資料。
+- [x] 舊事件摘要以 `summary`、`fact`、`title` 順序相容。
+- [x] 舊資料缺月份時不補 1 月。
+- [x] HTML、robots.txt 與 Vercel header 維持 review-stage noindex 設定。
+- [x] API 回應使用 `Cache-Control: no-store`。
+- [x] README 明確標示 standalone 預覽尚未實作帳號驗證，正式使用需整合登入與權限邊界。
+
+## 本機驗證
+
+- [x] JavaScript 語法與差異檢查通過。
+- [x] 桌機真人路徑：進入工具 → 手動新增 → 時間軸 → 開啟摘要 → 編輯。
+- [x] AI 文字路徑：分析 → 五欄草稿 → 人工確認 → 時間軸。
+- [x] 390×844：無整頁水平溢出；輸入文字至少 16px；控制可觸控操作。
+- [x] 頂部橫向控制不用先垂直捲到底即可操作長時間軸。
+- [x] Console 無未處理錯誤。
+- [x] 含假姓名的 AI 與手動測試資料，在草稿與時間軸中保持原始內容。
+
+## 發布狀態
+
+- 本機版本：`v0.40-authenticated-five-field`
+- 正式站目前仍為既有版本；本次不推送、不部署、不變更正式別名。
+- 正式發布需 Kevin 明確核准。

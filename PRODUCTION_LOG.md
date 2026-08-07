@@ -1,5 +1,62 @@
 # Production Log
 
+## v0.40 Authenticated-workspace raw event content
+
+- Date: 2026-08-07
+- Status: local verification and PR delivery; not deployed.
+- Scope:
+  - Removed the v0.39 browser-side de-identification transformations at Kevin's direction because the tool is intended for an authenticated workspace.
+  - Manual, AI text, and browser speech flows now preserve the entered person name and event summary.
+  - Kept the five-field event model, AI draft confirmation, progressive disclosure, summary dialog, and top synchronized timeline controls unchanged.
+  - Updated the person field to accept either a real name or a role label.
+  - Documented that the standalone preview does not itself provide login enforcement; production integration still needs the authenticated host's access controls.
+- Verification:
+  - `node --check` passed for `app.js` and `api/analyze.js`; `git diff --check` passed; local root returned v0.40 over HTTP 200.
+  - AI text with the fake name `王小明` and a dummy phone number remained unchanged in both the input and editable draft; the local fallback identified the event actor as `王小明`.
+  - Manual entry preserved `王小明` as the event person and preserved the name in the summary dialog; the test event was removed afterward.
+  - At 390px, document `scrollWidth` equaled `clientWidth`, the AI textarea remained 16px, and the removed notice count stayed zero.
+  - Browser console warnings/errors: none.
+  - Preview screenshots: `case-timeline-v040-desktop.png` and `case-timeline-v040-mobile.png`.
+
+## v0.39 Automatic browser-side de-identification
+
+- Date: 2026-08-07
+- Status: local preview only; not pushed or deployed.
+- Scope:
+  - Removed the visible de-identification notice and all copy asking workers to prepare de-identified text first.
+  - Added one browser-side sanitizer shared by manual events, AI text, browser speech results, migrated events, AI drafts, and confirmed timeline events.
+  - Common name labels, phone numbers, email addresses, Taiwan ID-like values, labeled accounts, addresses, birthdays, honorific names, and long number sequences are masked before AI submission or browser storage.
+  - Manual person names are converted to `關係人`; the same name is masked when it appears in that event summary.
+- Verification:
+  - Static `node --check app.js` and `git diff --check` passed; local root returned v0.39 over HTTP 200.
+  - AI test input containing a fake name, mobile number, email, ID, bank account, and Taipei address rendered only masked placeholders in both the input and the editable draft.
+  - The ROC year/month remained `115年3月`; running the sanitizer again produced the same result instead of nested replacements.
+  - Manual entry changed the fake actor name to `關係人` and masked both the repeated name and phone number in the saved summary; the test event was then deleted.
+  - At 390px, document `scrollWidth` equaled `clientWidth`, the AI textarea remained 16px and 325px wide, and the removed notice count stayed zero.
+  - Browser console warnings/errors: none.
+  - Preview screenshots: `case-timeline-v039-auto-deidentify.png` and `case-timeline-v039-auto-deidentify-mobile.png`.
+
+## v0.38 Five-field timeline local preview
+
+- Date: 2026-08-07
+- Status: local preview only; not pushed or deployed.
+- Scope:
+  - Reduced every visible event path to year, month, actor, primary category, and summary.
+  - Split first input into manual entry and an AI helper area with editable text or browser speech recognition.
+  - Removed non-goal event fields and management/export surfaces from the v0.38 interface.
+  - Changed the reading view to a category-based timeline; full summary appears only after event intent (click/keyboard).
+  - Added a synchronized top horizontal rail and earlier/later controls so users do not need the bottom scrollbar.
+  - Kept the old localStorage key read-only and migrated compatible data to a separate five-field key.
+- Verification:
+  - `node --check` passed for `app.js`, `api/analyze.js`, and `api/extract-file.js`; `git diff --check` passed.
+  - Local root and `/api/analyze` returned `200`; API response included `Cache-Control: no-store` and the five-field-compatible local fallback.
+  - Desktop human flow completed manual add, summary dialog, edit, AI text analysis, 12 editable five-field drafts, and draft confirmation.
+  - An event with no month remained `月份待確認` in both the timeline accessible label and summary dialog.
+  - A 14-event timeline exposed the top rail; earlier/later controls and ArrowRight synchronized with the lower chart.
+  - At the 390px override, document `scrollWidth` equaled `clientWidth`, inputs rendered at 16px, event buttons measured 86px high, and the summary dialog returned focus to its event.
+  - Browser console warnings/errors: none.
+  - Preview screenshots: `case-timeline-v038-desktop.png`, `case-timeline-v038-mobile.png`, and `case-timeline-v038-mobile-summary.png`.
+
 ## Artifact
 
 - Name: Case Timeline Financial Counseling Tool
@@ -626,6 +683,25 @@ Each deployment creates a new Vercel deployment ID. Use `vercel inspect https://
   - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; `事件資料` tab stayed absent.
 - GitHub/Vercel deployment:
   - Not performed in this update. Production remains at the last deployed version until Kevin explicitly asks for push/deploy.
+
+## v0.36 Landing Page Preview
+
+- Date: 2026-07-07
+- Update time: 2026/07/07 17:06 台北時間
+- Update summary:
+  - Added a landing page before the timeline workspace so users first see the tool purpose, basic workflow, six整理面向, and a clear `進入工具` button.
+  - Reused the existing warm desk timeline image as the landing hero background; no new generated image asset was added.
+  - Kept the tool workspace behind `#tool`, so future integrations can link users to the landing page first or open the tool directly when needed.
+  - Updated the visible test badge to `測試版 v0.36` and `更新：2026/07/07 17:06（台北時間）`.
+- Local verification:
+  - `node --check app.js`, `node --check api/analyze.js`, and `node --check api/extract-file.js`: passed.
+  - `git diff --check`: passed; Windows line-ending warnings only.
+  - Local Vercel dev check on `http://127.0.0.1:4181/`: rendered the landing page and `測試版 v0.36`.
+  - Headless Chrome flow: first screen showed the landing page with CTA and hid the tool; clicking `進入工具` changed the URL to `#tool`, revealed the tool, and focused `快速貼上資料`.
+  - Direct `http://127.0.0.1:4181/#tool` opened the tool directly.
+  - Mobile headless Chrome check at `390px`: no whole-page horizontal overflow; landing CTA remained visible.
+- GitHub/Vercel deployment:
+  - Not performed in this update. Production remains at `v0.35-taipei-time` until Kevin asks for commit/deploy.
 
 ## v0.35 Taipei Time Display
 
