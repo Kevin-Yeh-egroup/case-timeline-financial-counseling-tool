@@ -10,31 +10,7 @@
   </head>
   <body>
     <main class="app-shell">
-      <section class="landing-page" id="landingPage" aria-labelledby="landingTitle">
-        <div class="landing-copy">
-          <p class="eyebrow">生命歷程整理</p>
-          <h1 id="landingTitle">五個欄位，讓重要事件回到時間脈絡</h1>
-          <p class="landing-lead">只整理年度、月份、人物、事件分類與摘要。閱讀時先看時間軸，想了解時再點開事件。</p>
-          <div class="landing-actions">
-            <button class="primary" id="enterToolButton" type="button">進入工具</button>
-            <a class="ghost-link" href="#landingSteps">看三步操作</a>
-          </div>
-          <p class="trust-note">AI 內容是待人工確認的初稿。</p>
-        </div>
-        <div class="landing-visual" aria-label="事件依時間與分類排列的示意">
-          <div class="visual-axis"><span>108 年</span><span>112 年</span><span>115 年</span></div>
-          <div class="visual-row work"><strong>就業就學史</strong><span>案主・開始工作</span></div>
-          <div class="visual-row family"><strong>感情家庭史</strong><span>案主・家庭安排改變</span></div>
-          <div class="visual-row resource"><strong>社會資源</strong><span>案主・申請支持資源</span></div>
-        </div>
-        <section class="landing-steps" id="landingSteps" aria-label="操作方式">
-          <article><span>01</span><strong>選輸入方式</strong><p>手動輸入，或讓 AI 分析文字與語音。</p></article>
-          <article><span>02</span><strong>確認五個欄位</strong><p>年月、人物、分類與摘要都可修改。</p></article>
-          <article><span>03</span><strong>閱讀時間軸</strong><p>點擊事件才展開完整摘要。</p></article>
-        </section>
-      </section>
-
-      <section class="tool-app" id="toolApp" hidden>
+      <section class="tool-app" id="toolApp">
         <header class="topbar">
           <div>
             <p class="eyebrow">助人者生命歷程</p>
@@ -42,40 +18,27 @@
             <p>每筆事件只保留五個必要欄位。</p>
           </div>
           <div class="release-badge" aria-label="版本資訊">
-            <span>測試版 v0.40</span>
-            <span>更新：2026/08/07 18:00（台北時間）</span>
+            <span>測試版 v0.41</span>
+            <span>更新：2026/08/11（台北時間）</span>
           </div>
         </header>
 
-        <section class="input-entry" id="inputEntry" aria-labelledby="inputChoiceTitle">
-          <div class="input-entry-head">
-            <div>
-              <p class="eyebrow">開始整理</p>
-              <h2 id="inputChoiceTitle" tabindex="-1">你想怎麼輸入？</h2>
-              <p>先選一種方式，畫面只會顯示當下需要的操作。</p>
+        <dialog class="input-dialog" id="inputDialog" aria-labelledby="inputDialogTitle">
+          <div class="input-dialog-shell">
+            <header class="dialog-head input-dialog-head">
+              <div><p class="eyebrow">整理生命歷程</p><h2 id="inputDialogTitle">新增事件</h2></div>
+              <button class="dialog-close" id="closeInputDialog" type="button" aria-label="關閉新增事件視窗">×</button>
+            </header>
+            <div class="input-mode-switch" id="inputModeSwitch" role="tablist" aria-label="事件輸入方式">
+              <button class="active" id="manualModeButton" type="button" role="tab" aria-selected="true" aria-controls="manualPanel">手動輸入</button>
+              <button id="aiModeButton" type="button" role="tab" aria-selected="false" aria-controls="aiPanel">AI 分析</button>
             </div>
-          </div>
 
-          <div class="input-choice-grid" id="inputChoiceGrid" aria-label="輸入方式">
-            <button class="input-choice-card" id="chooseManualInput" type="button">
-              <span class="choice-kicker">逐筆建立</span>
-              <strong>手動輸入</strong>
-              <span>適合資料已經整理好，或只想補上一兩筆事件。</span>
-              <em>開始手動整理 <span aria-hidden="true">→</span></em>
-            </button>
-            <button class="input-choice-card featured" id="chooseAiInput" type="button">
-              <span class="choice-kicker">助人者專區</span>
-              <strong>AI 分析</strong>
-              <span>使用文字或語音輸入，由 AI 先整理成五欄事件初稿。</span>
-              <span class="choice-tags"><span>文字</span><span>語音</span></span>
-              <em>進入 AI 分析 <span aria-hidden="true">→</span></em>
-            </button>
-          </div>
+            <section class="input-entry" id="inputEntry">
 
-          <section class="manual-panel" id="manualPanel" aria-labelledby="manualTitle" hidden>
+          <section class="manual-panel" id="manualPanel" aria-labelledby="manualTitle" role="tabpanel">
             <div class="panel-head">
               <div><p class="eyebrow">手動輸入</p><h3 id="manualTitle">新增一筆事件</h3></div>
-              <button class="ghost" id="manualBack" type="button">更換方式</button>
             </div>
             <form id="eventForm" class="event-form">
               <input id="eventId" name="eventId" type="hidden" />
@@ -121,10 +84,9 @@
             </form>
           </section>
 
-          <section class="ai-panel" id="aiPanel" aria-labelledby="aiTitle" hidden>
+          <section class="ai-panel" id="aiPanel" aria-labelledby="aiTitle" role="tabpanel" hidden>
             <div class="panel-head">
               <div><p class="eyebrow">助人者專區・AI 分析</p><h3 id="aiTitle">用文字或語音說明事件</h3></div>
-              <button class="ghost" id="aiBack" type="button">更換方式</button>
             </div>
             <div class="ai-mode-switch" role="group" aria-label="AI 輸入方式">
               <button class="active" id="aiTextMode" type="button" aria-pressed="true">文字輸入</button>
@@ -147,7 +109,9 @@
               <div class="draft-list" id="draftList"></div>
             </section>
           </section>
-        </section>
+            </section>
+          </div>
+        </dialog>
 
         <section class="timeline-section" id="timelineSection" aria-labelledby="timelineTitle">
           <div class="timeline-title-row">
@@ -180,6 +144,10 @@
           <div class="timeline-empty" id="timelineEmpty">
             <strong>時間軸還是空的</strong>
             <span>新增第一筆事件，或使用 AI 分析一段事件資料。</span>
+            <div class="empty-actions">
+              <button class="primary" id="emptyAddEventButton" type="button">新增第一筆事件</button>
+              <button class="ghost" id="emptyAiButton" type="button">使用 AI 分析</button>
+            </div>
           </div>
         </section>
       </section>

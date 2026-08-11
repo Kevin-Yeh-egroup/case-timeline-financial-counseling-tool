@@ -1,4 +1,4 @@
-const CURRENT_VERSION = "v0.40-authenticated-five-field";
+const CURRENT_VERSION = "v0.41-timeline-first-modal-input";
 const SIMPLE_STATE_KEY = "caseTimelineSimpleEvents:v1";
 const LEGACY_STATE_KEY = "caseTimelineToolState";
 const TAIPEI_TIME_ZONE = "Asia/Taipei";
@@ -31,6 +31,9 @@ let drafts = [];
 let voiceRecognition = null;
 let activeDialogEventId = "";
 let lastDialogTrigger = null;
+let lastInputDialogTrigger = null;
+let restoreInputFocusOnClose = true;
+let aiLoading = false;
 let syncingTimelineScroll = false;
 
 function esc(value) {
@@ -153,56 +156,60 @@ function laneClass(lane) {
   })[normalizeLane(lane)] || "money";
 }
 
-function showLanding() {
-  $("#landingPage").hidden = false;
-  $("#toolApp").hidden = true;
-}
-
-function showTool({ focusChoice = false } = {}) {
-  $("#landingPage").hidden = true;
+function showTool() {
   $("#toolApp").hidden = false;
-  if (location.hash !== "#tool") history.pushState(null, "", "#tool");
   renderAll();
-  if (focusChoice) requestAnimationFrame(() => $("#inputChoiceTitle")?.focus());
 }
 
-function showChoice() {
+function setInputMode(mode, { event = null, reset = true, focus = true } = {}) {
+  const manualMode = mode === "manual";
+  if (manualMode) stopVoice();
+  $("#manualPanel").hidden = !manualMode;
+  $("#aiPanel").hidden = manualMode;
+  $("#manualModeButton").classList.toggle("active", manualMode);
+  $("#aiModeButton").classList.toggle("active", !manualMode);
+  $("#manualModeButton").setAttribute("aria-selected", String(manualMode));
+  $("#aiModeButton").setAttribute("aria-selected", String(!manualMode));
+  $("#manualModeButton").tabIndex = manualMode ? 0 : -1;
+  $("#aiModeButton").tabIndex = manualMode ? -1 : 0;
+  $("#aiModeButton").disabled = Boolean(event) || aiLoading;
+  $("#inputModeSwitch").hidden = Boolean(event);
+  const dialogTitle = event ? "編輯事件" : manualMode ? "新增事件" : "AI 分析事件";
+  $("#inputDialogTitle").textContent = dialogTitle;
+  $("#closeInputDialog").setAttribute("aria-label", `關閉${dialogTitle}視窗`);
+
+  if (manualMode) {
+    if (reset) resetManualForm();
+    if (event) fillManualForm(event);
+  } else {
+    setAiMode("text", { focus: false });
+    renderDrafts();
+  }
+
+  if (focus) requestAnimationFrame(() => (manualMode ? $("#eventYear") : $("#aiInputText")).focus());
+}
+
+function openInputDialog(mode, { event = null, trigger = null } = {}) {
+  lastInputDialogTrigger = trigger || document.activeElement;
+  restoreInputFocusOnClose = true;
+  setInputMode(mode, { event, reset: true, focus: false });
+  if (!$("#inputDialog").open) $("#inputDialog").showModal();
+  requestAnimationFrame(() => (mode === "manual" ? $("#eventYear") : $("#aiInputText")).focus());
+}
+
+function showManual(event = null, trigger = null) {
+  openInputDialog("manual", { event, trigger });
+}
+
+function showAi(trigger = null) {
+  openInputDialog("ai", { trigger });
+}
+
+function closeInputDialog({ restoreFocus = true } = {}) {
+  if (aiLoading) return;
   stopVoice();
-  $("#inputChoiceGrid").hidden = false;
-  $("#manualPanel").hidden = true;
-  $("#aiPanel").hidden = true;
-  $("#inputEntry").hidden = false;
-  requestAnimationFrame(() => {
-    $("#inputEntry").scrollIntoView({ behavior: "smooth", block: "start" });
-    $("#inputChoiceTitle").focus();
-  });
-}
-
-function showManual(event = null) {
-  stopVoice();
-  $("#inputChoiceGrid").hidden = true;
-  $("#aiPanel").hidden = true;
-  $("#manualPanel").hidden = false;
-  $("#inputEntry").hidden = false;
-  resetManualForm();
-  if (event) fillManualForm(event);
-  requestAnimationFrame(() => {
-    $("#manualPanel").scrollIntoView({ behavior: "smooth", block: "start" });
-    $("#eventYear").focus();
-  });
-}
-
-function showAi() {
-  $("#inputChoiceGrid").hidden = true;
-  $("#manualPanel").hidden = true;
-  $("#aiPanel").hidden = false;
-  $("#inputEntry").hidden = false;
-  setAiMode("text");
-  renderDrafts();
-  requestAnimationFrame(() => {
-    $("#aiPanel").scrollIntoView({ behavior: "smooth", block: "start" });
-    $("#aiInputText").focus();
-  });
+  restoreInputFocusOnClose = restoreFocus;
+  if ($("#inputDialog").open) $("#inputDialog").close();
 }
 
 function resetManualForm() {
@@ -252,14 +259,14 @@ function saveManualEvent(form) {
   else events.push(next);
   saveEvents();
   renderAll();
-  showChoice();
+  closeInputDialog({ restoreFocus: false });
   requestAnimationFrame(() => {
     scrollToEvent(next.id);
     openEventDialog(next.id, document.querySelector(`[data-event-id="${CSS.escape(next.id)}"]`));
   });
 }
 
-function setAiMode(mode) {
+function setAiMode(mode, { focus = true } = {}) {
   const voiceMode = mode === "voice";
   $("#aiTextMode").classList.toggle("active", !voiceMode);
   $("#aiVoiceMode").classList.toggle("active", voiceMode);
@@ -268,13 +275,14 @@ function setAiMode(mode) {
   $("#voiceControls").hidden = !voiceMode;
   $("#aiInputLabel").textContent = voiceMode ? "語音辨識結果（可修改）" : "輸入或貼上事件內容";
   if (!voiceMode) stopVoice();
-  requestAnimationFrame(() => (voiceMode ? $("#startVoice") : $("#aiInputText")).focus());
+  if (focus) requestAnimationFrame(() => (voiceMode ? $("#startVoice") : $("#aiInputText")).focus());
 }
 
 function setAiLoading(loading) {
+  aiLoading = loading;
   $("#analyzeButton").disabled = loading;
   $("#analyzeButton").textContent = loading ? "AI 分析中…" : "開始 AI 分析";
-  ["aiBack", "aiTextMode", "aiVoiceMode", "startVoice", "stopVoice", "useTestText"].forEach((id) => {
+  ["closeInputDialog", "manualModeButton", "aiModeButton", "aiTextMode", "aiVoiceMode", "startVoice", "stopVoice", "useTestText"].forEach((id) => {
     $("#" + id).disabled = loading;
   });
 }
@@ -443,8 +451,13 @@ function confirmDraft(index) {
   renderAll();
   renderDrafts();
   if (!drafts.length) {
-    showChoice();
-    requestAnimationFrame(() => scrollToEvent(event.id));
+    closeInputDialog({ restoreFocus: false });
+    requestAnimationFrame(() => {
+      scrollToEvent(event.id);
+      openEventDialog(event.id, document.querySelector(`[data-event-id="${CSS.escape(event.id)}"]`));
+    });
+  } else {
+    requestAnimationFrame(() => $("#draftList [data-confirm-draft]")?.focus());
   }
 }
 
@@ -585,8 +598,9 @@ function closeEventDialog() {
 function editActiveEvent() {
   const event = events.find((item) => item.id === activeDialogEventId);
   if (!event) return;
+  const trigger = lastDialogTrigger;
   closeEventDialog();
-  showManual(event);
+  showManual(event, trigger);
 }
 
 function deleteActiveEvent() {
@@ -632,16 +646,21 @@ function stopVoice() {
 }
 
 function bindEvents() {
-  $("#enterToolButton").addEventListener("click", () => showTool({ focusChoice: true }));
-  $("#chooseManualInput").addEventListener("click", () => showManual());
-  $("#chooseAiInput").addEventListener("click", showAi);
-  $("#manualBack").addEventListener("click", showChoice);
-  $("#aiBack").addEventListener("click", showChoice);
+  $("#manualModeButton").addEventListener("click", () => setInputMode("manual"));
+  $("#aiModeButton").addEventListener("click", () => setInputMode("ai"));
+  $("#inputModeSwitch").addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    event.preventDefault();
+    const nextMode = event.key === "ArrowLeft" ? "manual" : "ai";
+    if (nextMode === "ai" && $("#aiModeButton").disabled) return;
+    setInputMode(nextMode);
+  });
+  $("#closeInputDialog").addEventListener("click", () => closeInputDialog());
   $("#eventForm").addEventListener("submit", (event) => {
     event.preventDefault();
     saveManualEvent(event.currentTarget);
   });
-  $("#cancelEditButton").addEventListener("click", showChoice);
+  $("#cancelEditButton").addEventListener("click", () => closeInputDialog());
   $("#aiTextMode").addEventListener("click", () => setAiMode("text"));
   $("#aiVoiceMode").addEventListener("click", () => setAiMode("voice"));
   $("#startVoice").addEventListener("click", startVoice);
@@ -661,8 +680,10 @@ function bindEvents() {
       renderDrafts();
     }
   });
-  $("#addEventButton").addEventListener("click", () => showManual());
-  $("#openAiButton").addEventListener("click", showAi);
+  $("#addEventButton").addEventListener("click", (event) => showManual(null, event.currentTarget));
+  $("#openAiButton").addEventListener("click", (event) => showAi(event.currentTarget));
+  $("#emptyAddEventButton").addEventListener("click", (event) => showManual(null, event.currentTarget));
+  $("#emptyAiButton").addEventListener("click", (event) => showAi(event.currentTarget));
   $("#actorFilter").addEventListener("change", renderTimeline);
   $("#laneFilter").addEventListener("change", renderTimeline);
   $("#timelineChart").addEventListener("click", (event) => {
@@ -678,6 +699,18 @@ function bindEvents() {
   $("#eventDialog").addEventListener("close", () => {
     if (lastDialogTrigger?.isConnected) lastDialogTrigger.focus({ preventScroll: true });
   });
+  $("#inputDialog").addEventListener("click", (event) => {
+    if (event.target === $("#inputDialog")) closeInputDialog();
+  });
+  $("#inputDialog").addEventListener("cancel", (event) => {
+    if (aiLoading) event.preventDefault();
+    else stopVoice();
+  });
+  $("#inputDialog").addEventListener("close", () => {
+    stopVoice();
+    if (restoreInputFocusOnClose && lastInputDialogTrigger?.isConnected) lastInputDialogTrigger.focus({ preventScroll: true });
+    restoreInputFocusOnClose = true;
+  });
   $("#scrollEarlier").addEventListener("click", () => nudgeTimeline(-1));
   $("#scrollLater").addEventListener("click", () => nudgeTimeline(1));
   $("#timelineTopRail").addEventListener("scroll", () => {
@@ -690,17 +723,12 @@ function bindEvents() {
     if (event.key === "ArrowLeft") { event.preventDefault(); nudgeTimeline(-0.22); }
     if (event.key === "ArrowRight") { event.preventDefault(); nudgeTimeline(0.22); }
   });
-  window.addEventListener("hashchange", () => {
-    if (location.hash === "#tool") showTool();
-    else showLanding();
-  });
   window.addEventListener("resize", updateTimelineNavigation);
   if (globalThis.ResizeObserver) new ResizeObserver(updateTimelineNavigation).observe($("#timelineChart"));
 }
 
 bindEvents();
-if (location.hash === "#tool" || new URLSearchParams(location.search).get("tool") === "1") showTool();
-else showLanding();
+showTool();
 
 window.caseTimelineTool = {
   version: CURRENT_VERSION,
