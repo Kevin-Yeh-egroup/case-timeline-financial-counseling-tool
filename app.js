@@ -1,4 +1,4 @@
-const CURRENT_VERSION = "v0.41-timeline-first-modal-input";
+const CURRENT_VERSION = "v0.42-manual-only-timeline";
 const SIMPLE_STATE_KEY = "caseTimelineSimpleEvents:v1";
 const LEGACY_STATE_KEY = "caseTimelineToolState";
 const TAIPEI_TIME_ZONE = "Asia/Taipei";
@@ -16,24 +16,14 @@ const laneAliases = {
   "疾病身心史": "疾病與身心健康史",
   "疾病健康史": "疾病與身心健康史"
 };
-const TEST_TEXT = [
-  "案主於民國115年3月開始餐飲排班工作。",
-  "案母於民國115年5月開始協助照顧孩子。",
-  "案主於民國115年7月取得中低收入戶資格。",
-  "案父民國108年負債500萬元。"
-].join("\n");
-
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 let events = loadEvents();
-let drafts = [];
-let voiceRecognition = null;
 let activeDialogEventId = "";
 let lastDialogTrigger = null;
 let lastInputDialogTrigger = null;
 let restoreInputFocusOnClose = true;
-let aiLoading = false;
 let syncingTimelineScroll = false;
 
 function esc(value) {
@@ -161,53 +151,23 @@ function showTool() {
   renderAll();
 }
 
-function setInputMode(mode, { event = null, reset = true, focus = true } = {}) {
-  const manualMode = mode === "manual";
-  if (manualMode) stopVoice();
-  $("#manualPanel").hidden = !manualMode;
-  $("#aiPanel").hidden = manualMode;
-  $("#manualModeButton").classList.toggle("active", manualMode);
-  $("#aiModeButton").classList.toggle("active", !manualMode);
-  $("#manualModeButton").setAttribute("aria-selected", String(manualMode));
-  $("#aiModeButton").setAttribute("aria-selected", String(!manualMode));
-  $("#manualModeButton").tabIndex = manualMode ? 0 : -1;
-  $("#aiModeButton").tabIndex = manualMode ? -1 : 0;
-  $("#aiModeButton").disabled = Boolean(event) || aiLoading;
-  $("#inputModeSwitch").hidden = Boolean(event);
-  const dialogTitle = event ? "編輯事件" : manualMode ? "新增事件" : "AI 分析事件";
-  $("#inputDialogTitle").textContent = dialogTitle;
-  $("#closeInputDialog").setAttribute("aria-label", `關閉${dialogTitle}視窗`);
-
-  if (manualMode) {
-    if (reset) resetManualForm();
-    if (event) fillManualForm(event);
-  } else {
-    setAiMode("text", { focus: false });
-    renderDrafts();
-  }
-
-  if (focus) requestAnimationFrame(() => (manualMode ? $("#eventYear") : $("#aiInputText")).focus());
-}
-
-function openInputDialog(mode, { event = null, trigger = null } = {}) {
+function openInputDialog({ event = null, trigger = null } = {}) {
   lastInputDialogTrigger = trigger || document.activeElement;
   restoreInputFocusOnClose = true;
-  setInputMode(mode, { event, reset: true, focus: false });
+  resetManualForm();
+  if (event) fillManualForm(event);
+  const dialogTitle = event ? "編輯事件" : "新增事件";
+  $("#inputDialogTitle").textContent = dialogTitle;
+  $("#closeInputDialog").setAttribute("aria-label", `關閉${dialogTitle}視窗`);
   if (!$("#inputDialog").open) $("#inputDialog").showModal();
-  requestAnimationFrame(() => (mode === "manual" ? $("#eventYear") : $("#aiInputText")).focus());
+  requestAnimationFrame(() => $("#eventYear").focus());
 }
 
 function showManual(event = null, trigger = null) {
-  openInputDialog("manual", { event, trigger });
-}
-
-function showAi(trigger = null) {
-  openInputDialog("ai", { trigger });
+  openInputDialog({ event, trigger });
 }
 
 function closeInputDialog({ restoreFocus = true } = {}) {
-  if (aiLoading) return;
-  stopVoice();
   restoreInputFocusOnClose = restoreFocus;
   if ($("#inputDialog").open) $("#inputDialog").close();
 }
@@ -264,201 +224,6 @@ function saveManualEvent(form) {
     scrollToEvent(next.id);
     openEventDialog(next.id, document.querySelector(`[data-event-id="${CSS.escape(next.id)}"]`));
   });
-}
-
-function setAiMode(mode, { focus = true } = {}) {
-  const voiceMode = mode === "voice";
-  $("#aiTextMode").classList.toggle("active", !voiceMode);
-  $("#aiVoiceMode").classList.toggle("active", voiceMode);
-  $("#aiTextMode").setAttribute("aria-pressed", String(!voiceMode));
-  $("#aiVoiceMode").setAttribute("aria-pressed", String(voiceMode));
-  $("#voiceControls").hidden = !voiceMode;
-  $("#aiInputLabel").textContent = voiceMode ? "語音辨識結果（可修改）" : "輸入或貼上事件內容";
-  if (!voiceMode) stopVoice();
-  if (focus) requestAnimationFrame(() => (voiceMode ? $("#startVoice") : $("#aiInputText")).focus());
-}
-
-function setAiLoading(loading) {
-  aiLoading = loading;
-  $("#analyzeButton").disabled = loading;
-  $("#analyzeButton").textContent = loading ? "AI 分析中…" : "開始 AI 分析";
-  ["closeInputDialog", "manualModeButton", "aiModeButton", "aiTextMode", "aiVoiceMode", "startVoice", "stopVoice", "useTestText"].forEach((id) => {
-    $("#" + id).disabled = loading;
-  });
-}
-
-async function analyzeInput() {
-  const text = $("#aiInputText").value.trim();
-  if (text.length < 6) {
-    $("#aiStatus").textContent = "請先輸入一段事件內容。";
-    $("#aiInputText").focus();
-    return;
-  }
-  stopVoice();
-  setAiLoading(true);
-  $("#aiStatus").textContent = "正在辨識年月、人物、分類與事件摘要…";
-  try {
-    let responseEvents = [];
-    try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, locale: "zh-Hant-TW", lanes })
-      });
-      if (response.ok) {
-        const result = await response.json();
-        responseEvents = Array.isArray(result.events) ? result.events : [];
-      }
-    } catch (_) {
-      responseEvents = [];
-    }
-    const source = responseEvents.length ? responseEvents : localAnalyze(text);
-    drafts = source.map((event) => normalizeDraft(event)).filter((event) => event.summary).slice(0, 20);
-    $("#aiStatus").textContent = drafts.length
-      ? `已產生 ${drafts.length} 筆事件初稿；請確認五個欄位後加入時間軸。`
-      : "沒有辨識到可用事件，請補充人物、時間或發生的事情。";
-    renderDrafts();
-    if (drafts.length) requestAnimationFrame(() => $("#draftSection").scrollIntoView({ behavior: "smooth", block: "start" }));
-  } finally {
-    setAiLoading(false);
-  }
-}
-
-function normalizeDraft(event) {
-  const sourceText = String(event.sourceText || event.summary || event.fact || event.title || "").trim();
-  return normalizeEvent({
-    id: newEventId(),
-    rocYear: event.rocYear || event.year || extractYear(sourceText),
-    rocMonth: event.rocMonth || event.month || extractMonth(sourceText),
-    actor: event.actor || event.primaryActor || event.actorText || detectActor(sourceText),
-    lane: event.lane || event.category || detectLane(sourceText),
-    summary: event.summary || event.fact || event.title || sourceText
-  });
-}
-
-function splitSentences(text) {
-  return String(text)
-    .split(/(?:\r?\n)+|(?<=[。！？!?；;])/)
-    .map((sentence) => sentence.trim())
-    .filter((sentence) => sentence.length >= 4);
-}
-
-function localAnalyze(text) {
-  return splitSentences(text).slice(0, 20).map((summary) => ({
-    rocYear: extractYear(summary),
-    rocMonth: extractMonth(summary),
-    actor: detectActor(summary),
-    lane: detectLane(summary),
-    summary
-  }));
-}
-
-function extractYear(text) {
-  const roc = String(text).match(/(?:民國\s*)?(\d{2,3})\s*年/);
-  if (roc) return normalizeYear(roc[1]);
-  const ad = String(text).match(/(?:19|20)\d{2}\s*年?/);
-  if (ad) return normalizeYear(Number(ad[0].replace(/\D/g, "")) - 1911);
-  return "";
-}
-
-function extractMonth(text) {
-  const match = String(text).match(/(?:^|[^\d])(1[0-2]|0?[1-9])\s*月/);
-  return match ? normalizeMonth(match[1]) : "";
-}
-
-function detectActor(text) {
-  const value = String(text);
-  const cues = ["案主", "案母", "案父", "配偶", "伴侶", "子女", "孩子", "主要照顧者", "同住親屬"];
-  const role = cues.find((cue) => value.includes(cue));
-  if (role) return role;
-  const labeledName = value.match(/(?:姓名|事件人物)\s*[:：]\s*([\u4e00-\u9fff]{2,4})/);
-  if (labeledName) return labeledName[1];
-  const leadingName = value.match(/^([\u4e00-\u9fff]{2,4})(?:於|在)(?:民國)?\s*\d/)
-    || value.match(/^([\u4e00-\u9fff]{2,4})民國\s*\d/);
-  return leadingName?.[1] || "案主";
-}
-
-function detectLane(text) {
-  const value = String(text);
-  const rules = [
-    ["社會資源使用歷程", /低收入戶|中低收入戶|低收|中低收|補助|社工|轉介|資格|文件|租金補貼|社宅/],
-    ["重大財務事件", /生活費|卡債|信用卡|負債|借款|借貸|貸款|利息|協商|還款|存款|財務|金錢|催收|\d+\s*(?:萬|元)/],
-    ["疾病與身心健康史", /疾病|生病|就醫|診斷|用藥|精神|憂鬱|焦慮|健康|長照|醫療|住院/],
-    ["感情與家庭史", /感情|婚姻|結婚|離婚|分居|伴侶|配偶|同居|親職|照顧孩子/],
-    ["就業與就學史", /工作|就業|就學|學校|職訓|薪水|收入|失業|工時|排班|請假/],
-    ["居住遷移史", /居住|租屋|搬家|搬遷|戶籍|房租|安置|住所/]
-  ];
-  return rules.find(([, pattern]) => pattern.test(value))?.[0] || "重大財務事件";
-}
-
-function monthOptions(selected) {
-  const options = [`<option value="" ${selected ? "" : "selected"}>月份待確認</option>`];
-  for (let month = 1; month <= 12; month += 1) {
-    options.push(`<option value="${month}" ${Number(selected) === month ? "selected" : ""}>${month} 月</option>`);
-  }
-  return options.join("");
-}
-
-function laneOptions(selected) {
-  return lanes.map((lane) => `<option value="${esc(lane)}" ${lane === normalizeLane(selected) ? "selected" : ""}>${esc(lane)}</option>`).join("");
-}
-
-function renderDrafts() {
-  const section = $("#draftSection");
-  section.hidden = drafts.length === 0;
-  $("#draftCount").textContent = drafts.length ? `${drafts.length} 筆待確認` : "";
-  $("#draftList").innerHTML = drafts.map((draft, index) => `
-    <article class="draft-card" data-draft-index="${index}">
-      <div class="draft-card-head"><strong>事件 ${index + 1}</strong><span>待人工確認</span></div>
-      <div class="draft-fields">
-        <label>年度<input name="rocYear" type="number" min="1" max="200" inputmode="numeric" value="${esc(draft.rocYear)}" required /></label>
-        <label>月份<select name="rocMonth">${monthOptions(draft.rocMonth)}</select></label>
-        <label>事件人物<input name="actor" type="text" maxlength="40" value="${esc(draft.actor)}" required /></label>
-        <label>事件大分類<select name="lane">${laneOptions(draft.lane)}</select></label>
-        <label class="full">事件摘要<textarea name="summary" rows="3" maxlength="300" required>${esc(draft.summary)}</textarea></label>
-      </div>
-      <div class="draft-status" role="status" aria-live="polite"></div>
-      <div class="draft-actions">
-        <button class="primary" type="button" data-confirm-draft="${index}">確認加入時間軸</button>
-        <button class="ghost" type="button" data-discard-draft="${index}">不採用</button>
-      </div>
-    </article>`).join("");
-}
-
-function draftFromCard(card) {
-  return normalizeEvent({
-    id: newEventId(),
-    rocYear: card.querySelector('[name="rocYear"]').value,
-    rocMonth: card.querySelector('[name="rocMonth"]').value,
-    actor: card.querySelector('[name="actor"]').value,
-    lane: card.querySelector('[name="lane"]').value,
-    summary: card.querySelector('[name="summary"]').value
-  });
-}
-
-function confirmDraft(index) {
-  const card = document.querySelector(`[data-draft-index="${index}"]`);
-  if (!card) return;
-  const event = draftFromCard(card);
-  if (!validStoredEvent(event)) {
-    card.querySelector(".draft-status").textContent = "請完成年度、事件人物、分類與摘要。";
-    card.querySelector("input:invalid, textarea:invalid")?.focus();
-    return;
-  }
-  events.push(event);
-  drafts.splice(index, 1);
-  saveEvents();
-  renderAll();
-  renderDrafts();
-  if (!drafts.length) {
-    closeInputDialog({ restoreFocus: false });
-    requestAnimationFrame(() => {
-      scrollToEvent(event.id);
-      openEventDialog(event.id, document.querySelector(`[data-event-id="${CSS.escape(event.id)}"]`));
-    });
-  } else {
-    requestAnimationFrame(() => $("#draftList [data-confirm-draft]")?.focus());
-  }
 }
 
 function filteredEvents() {
@@ -614,76 +379,15 @@ function deleteActiveEvent() {
   renderAll();
 }
 
-function startVoice() {
-  const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!Recognition) {
-    $("#voiceStatus").textContent = "此瀏覽器不支援內建語音辨識，請改用文字輸入。";
-    return;
-  }
-  stopVoice();
-  voiceRecognition = new Recognition();
-  voiceRecognition.lang = "zh-TW";
-  voiceRecognition.continuous = true;
-  voiceRecognition.interimResults = true;
-  voiceRecognition.onstart = () => { $("#voiceStatus").textContent = "語音輸入中；請開始說明事件。"; };
-  voiceRecognition.onerror = () => { $("#voiceStatus").textContent = "語音辨識中斷，可以改用文字輸入。"; };
-  voiceRecognition.onend = () => { $("#voiceStatus").textContent = "語音輸入已停止，可先修改辨識文字再分析。"; };
-  voiceRecognition.onresult = (recognitionEvent) => {
-    let finalText = "";
-    for (let index = recognitionEvent.resultIndex; index < recognitionEvent.results.length; index += 1) {
-      if (recognitionEvent.results[index].isFinal) finalText += recognitionEvent.results[index][0].transcript;
-    }
-    if (finalText) $("#aiInputText").value = [$("#aiInputText").value.trim(), finalText.trim()].filter(Boolean).join("\n");
-  };
-  voiceRecognition.start();
-}
-
-function stopVoice() {
-  if (voiceRecognition) {
-    voiceRecognition.stop();
-    voiceRecognition = null;
-  }
-}
-
 function bindEvents() {
-  $("#manualModeButton").addEventListener("click", () => setInputMode("manual"));
-  $("#aiModeButton").addEventListener("click", () => setInputMode("ai"));
-  $("#inputModeSwitch").addEventListener("keydown", (event) => {
-    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
-    event.preventDefault();
-    const nextMode = event.key === "ArrowLeft" ? "manual" : "ai";
-    if (nextMode === "ai" && $("#aiModeButton").disabled) return;
-    setInputMode(nextMode);
-  });
   $("#closeInputDialog").addEventListener("click", () => closeInputDialog());
   $("#eventForm").addEventListener("submit", (event) => {
     event.preventDefault();
     saveManualEvent(event.currentTarget);
   });
   $("#cancelEditButton").addEventListener("click", () => closeInputDialog());
-  $("#aiTextMode").addEventListener("click", () => setAiMode("text"));
-  $("#aiVoiceMode").addEventListener("click", () => setAiMode("voice"));
-  $("#startVoice").addEventListener("click", startVoice);
-  $("#stopVoice").addEventListener("click", stopVoice);
-  $("#analyzeButton").addEventListener("click", analyzeInput);
-  $("#useTestText").addEventListener("click", () => {
-    $("#aiInputText").value = TEST_TEXT;
-    $("#aiInputText").focus();
-    $("#aiStatus").textContent = "已填入測試文字，可以開始 AI 分析。";
-  });
-  $("#draftList").addEventListener("click", (event) => {
-    const confirmButton = event.target.closest("[data-confirm-draft]");
-    const discardButton = event.target.closest("[data-discard-draft]");
-    if (confirmButton) confirmDraft(Number(confirmButton.dataset.confirmDraft));
-    if (discardButton) {
-      drafts.splice(Number(discardButton.dataset.discardDraft), 1);
-      renderDrafts();
-    }
-  });
   $("#addEventButton").addEventListener("click", (event) => showManual(null, event.currentTarget));
-  $("#openAiButton").addEventListener("click", (event) => showAi(event.currentTarget));
   $("#emptyAddEventButton").addEventListener("click", (event) => showManual(null, event.currentTarget));
-  $("#emptyAiButton").addEventListener("click", (event) => showAi(event.currentTarget));
   $("#actorFilter").addEventListener("change", renderTimeline);
   $("#laneFilter").addEventListener("change", renderTimeline);
   $("#timelineChart").addEventListener("click", (event) => {
@@ -702,12 +406,7 @@ function bindEvents() {
   $("#inputDialog").addEventListener("click", (event) => {
     if (event.target === $("#inputDialog")) closeInputDialog();
   });
-  $("#inputDialog").addEventListener("cancel", (event) => {
-    if (aiLoading) event.preventDefault();
-    else stopVoice();
-  });
   $("#inputDialog").addEventListener("close", () => {
-    stopVoice();
     if (restoreInputFocusOnClose && lastInputDialogTrigger?.isConnected) lastInputDialogTrigger.focus({ preventScroll: true });
     restoreInputFocusOnClose = true;
   });

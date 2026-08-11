@@ -171,15 +171,13 @@ p {
   width: 100%;
 }
 
-.manual-panel,
-.ai-panel {
+.manual-panel {
   display: grid;
   gap: 16px;
   min-width: 0;
 }
 
 .panel-head,
-.draft-head,
 .timeline-title-row {
   display: flex;
   align-items: flex-start;
@@ -192,8 +190,7 @@ p {
   font-size: clamp(23px, 3vw, 32px);
 }
 
-.event-form,
-.draft-fields {
+.event-form {
   display: grid;
   gap: 14px;
 }
@@ -237,120 +234,18 @@ textarea {
 }
 
 .form-actions,
-.draft-actions,
 .timeline-actions,
-.dialog-actions,
-.voice-controls {
+.dialog-actions {
   display: flex;
   gap: 9px;
   flex-wrap: wrap;
 }
 
-.form-status,
-.draft-status {
+.form-status {
   min-height: 22px;
   color: var(--amber);
   font-size: 13px;
   font-weight: 800;
-}
-
-.input-mode-switch,
-.ai-mode-switch {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  border: 1px solid var(--line-strong);
-  border-radius: 9px;
-  padding: 4px;
-  background: #eef3ef;
-}
-
-.input-mode-switch {
-  margin: 14px 22px 0;
-}
-
-.ai-mode-switch {
-  width: min(100%, 440px);
-}
-
-.input-mode-switch button,
-.ai-mode-switch button {
-  min-height: 44px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 900;
-}
-
-.input-mode-switch button.active,
-.ai-mode-switch button.active {
-  background: #fff;
-  color: var(--teal-dark);
-  box-shadow: var(--shadow-soft);
-}
-
-.voice-controls {
-  align-items: center;
-  border-left: 4px solid var(--teal);
-  padding: 11px 13px;
-  background: var(--teal-soft);
-}
-
-.voice-controls span {
-  flex: 1;
-  min-width: 240px;
-  color: var(--teal-dark);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.draft-section {
-  display: grid;
-  gap: 12px;
-  border-top: 1px solid var(--line);
-  padding-top: 18px;
-}
-
-.draft-head h4 {
-  margin: 0;
-  font-size: 21px;
-}
-
-.draft-head span,
-.draft-card-head span {
-  color: var(--amber);
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.draft-list {
-  display: grid;
-  gap: 12px;
-}
-
-.draft-card {
-  display: grid;
-  gap: 13px;
-  border: 1px solid var(--line);
-  border-left: 5px solid var(--amber);
-  border-radius: 9px;
-  padding: 15px;
-  background: #fffefb;
-  box-shadow: var(--shadow-soft);
-}
-
-.draft-card-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.draft-fields {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.draft-fields .full {
-  grid-column: 1 / -1;
 }
 
 .timeline-section {
@@ -625,7 +520,7 @@ textarea {
 
 .input-dialog-shell {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   max-height: min(88dvh, 860px);
   overflow: hidden;
 }
@@ -753,27 +648,14 @@ textarea {
   }
 
   .date-fields,
-  .draft-fields,
   .timeline-filters {
     grid-template-columns: 1fr;
   }
 
-  .panel-head,
-  .draft-head {
+  .panel-head {
     grid-template-columns: 1fr;
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .input-mode-switch,
-  .ai-mode-switch,
-  .voice-controls,
-  .voice-controls button {
-    width: 100%;
-  }
-
-  .voice-controls span {
-    min-width: 0;
   }
 
   input,
@@ -853,10 +735,6 @@ textarea {
 
   .input-dialog-head {
     padding: 16px 14px 12px;
-  }
-
-  .input-mode-switch {
-    margin: 10px 14px 0;
   }
 
   .input-dialog .input-entry {
