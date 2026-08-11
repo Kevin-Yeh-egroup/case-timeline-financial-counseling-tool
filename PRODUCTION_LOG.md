@@ -1,5 +1,22 @@
 # Production Log
 
+## v0.41 Timeline-first modal workflow
+
+- Date: 2026-08-11
+- Status: Draft PR preview ready; production alias unchanged.
+- Scope:
+  - Removed the separate landing page and the in-page `開始整理` / input-choice surface.
+  - Made the timeline, metrics, filters, and timeline actions the initial workspace at both `/` and `#tool`.
+  - Moved manual add, AI text/speech analysis, and existing-event editing into one native input dialog.
+  - Added empty-timeline actions that open the same manual or AI dialog instead of navigating elsewhere.
+  - Kept the five-field event model and event-summary progressive disclosure unchanged.
+- Verification:
+  - `node --check` passed for `app.js`, `api/analyze.js`, and `api/extract-file.js`; `git diff --check` passed.
+  - Static UI checks passed: 63 unique IDs, 58 JavaScript ID bindings resolved, two dialog boundaries were valid, and CSS braces balanced.
+  - Local HTTP returned `200` with v0.41, the timeline and input dialog, and no landing-page or `開始整理` block.
+  - Vercel Preview and Vercel Preview Comments checks passed; authenticated `vercel curl` returned the v0.41 HTML.
+  - Human-like browser interaction remains pending: localhost automation was blocked by the browser URL policy, while the HTTPS preview requires Vercel login.
+
 ## v0.40 Authenticated-workspace raw event content
 
 - Date: 2026-08-07
