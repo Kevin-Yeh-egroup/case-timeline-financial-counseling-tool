@@ -1,64 +1,46 @@
-# Case Timeline Financial Counseling Tool
+# 生命歷程整理｜五欄事件時間軸
 
-Public-safe static web tool for Taiwan social workers, financial-health counselors, and helping professionals to organize case timelines, decision nodes, household members/cohabitants, and six life-history domains: residence/migration, employment/education, relationship/family, illness/health, social-resource use, and major financial events.
+這是一個給台灣助人工作者使用的登入後生命歷程工具原型。v0.42 打開後直接顯示時間軸，首頁只保留「新增事件」，並把每筆事件收斂為五個必要欄位：
 
-## Scope
+1. 年度
+2. 月份（未知可留空）
+3. 事件人物
+4. 事件大分類
+5. 事件摘要
 
-- Static frontend with optional Vercel API routes for file extraction and AI draft analysis.
-- Without `GEMINI_API_KEY`, `GOOGLE_API_KEY`, or `OPENAI_API_KEY`, analysis falls back to browser-local semantic rules.
-- With `GEMINI_API_KEY` or `GOOGLE_API_KEY`, `/api/analyze` sends the submitted text to Gemini structured output analysis, using Gemini 2.5 Flash by default.
-- With `OPENAI_API_KEY`, `/api/analyze` can also use OpenAI Responses API as a fallback or provider override and return structured draft events/decisions.
-- `/api/extract-file` extracts readable text from DOCX, XLSX, PDF, text, CSV, and Markdown files without saving the file.
-- Browser-local state through `localStorage`.
-- Excel download is generated in the browser as `.xlsx`.
-- Timeline image downloads are generated in the browser as SVG and PNG for reports, presentations, and review notes.
-- Real-case handling should follow the responsible institution's privacy, supervision, and record-keeping rules.
-- Review-stage noindex controls are intentionally enabled.
-- Version `v0.35` keeps visible record/update times and download filename dates on Taipei time.
-- Version `v0.32` moves downloads to a `下載檔案` menu beside sharing checks, moves sample-package actions above the timeline event list, combines AI import/draft review with event data under `資料整理`, and renames decision surfaces to `決策／處遇`.
-- Version `v0.31` changes the editable draft removal action from `略過` to `不採用` so the review decision reads more clearly.
-- Version `v0.30` changes the first-screen saved-record area into search-only access for existing records; save and save-as controls are no longer shown there.
-- Version `v0.29` removes the visible manual workbench opener from the first screen; users enter the timeline/editing workspace only after generating a life-context map or opening a saved record.
-- Version `v0.28` keeps the first screen to quick start and saved records, adds browser-local saved-record management, moves the full timeline/editing workspace to a second layer, and renames draft review surfaces to `修改編輯`.
-- Version `v0.27` reduces first-screen anxiety: the visible fake-data notice was removed, secondary tools are tucked under `更多工具`, the quick-paste flow shows a loading state, and post-generation guidance explains how to adjust AI timeline drafts.
-- Version `v0.26` simplifies first use around quick generation of the first life-context map, shows AI drafts as a distinct timeline preview layer before archiving, collapses detailed draft fields by default, and adds SVG/PNG timeline image downloads.
-- Version `v0.25` adds Gemini 2.5 Flash structured semantic analysis for user text import, while preserving OpenAI and browser-local fallback paths.
-- Version `v0.24` adds a visible but unobtrusive test-version badge with the current update time so testers can identify which build they are reviewing.
-- Version `v0.23` merges the AI text-entry area so pasted text, extracted file text, and speech-to-text content accumulate in one reviewable field before analysis.
-- Version `v0.22` improves timeline reading: all-case overview can show every event, year and category headers stay visible while scrolling, same-category events are packed into fewer non-overlapping rows, and linked decision nodes appear directly on the timeline.
-- Version `v0.21` strengthened AI import review: mixed multi-person text is split into separate drafts, draft cards show people/event/time/place-object/classification review status, health and financial classification rules are tighter, and warning drafts ask for confirmation before archiving.
+閱讀者先從時間軸辨識年月、人物與分類；只有點擊事件時，才會展開五欄摘要。畫面不再提供決策節點、影響、待釐清、信心、敏感度、起訖年、事件清單、檔案匯入與匯出等非本版目標功能。
 
-## Safety Boundaries
+## v0.42 使用流程
 
-This tool does not provide:
+- 時間軸首頁：根網址與 `#tool` 都直接顯示概況、篩選與時間軸，不再先顯示入口頁或「開始整理」區塊。
+- 手動新增：按下「新增事件」才開啟五欄彈出視窗；儲存後回到時間軸並開啟該事件摘要。
+- 事件編輯：從事件摘要按下「編輯這筆事件」，沿用同一個五欄彈出視窗並帶入原資料。
+- 閱讀時間軸：以事件分類分列；事件按鈕只顯示月份與人物，點擊才看摘要。
+- 橫向瀏覽：時間軸上方提供同步橫向捲動軌與前後按鈕，不必滾到圖表底部。
 
-- investment, insurance, lending, or financial product recommendations;
-- legal advice or legal outcome predictions;
-- formal social-work assessment conclusions;
-- automated risk scoring or creditworthiness prediction.
+## 資料與相容性
 
-Sensitive real-case use should remain inside the responsible institution's privacy, supervision, and record-keeping rules.
+- 新版事件儲存在瀏覽器 `localStorage` 的 `caseTimelineSimpleEvents:v1`。
+- 舊版 `caseTimelineToolState` 只會被讀取並轉成五欄事件；原始舊資料不會被覆寫或刪除。
+- 舊資料沒有月份時會保留「月份待確認」，不會自動猜測。
+- 舊摘要依序沿用 `summary`、`fact`、`title`；舊人物關聯會轉成可閱讀的人物名稱。
 
-## Optional AI Configuration
+## 資料與權限邊界
 
-- `GEMINI_API_KEY` or `GOOGLE_API_KEY`: enables Gemini structured semantic analysis.
-- `GEMINI_SEMANTIC_MODEL` or `GEMINI_MODEL`: optional Gemini model override; default is `gemini-2.5-flash`.
-- `OPENAI_API_KEY`: enables OpenAI structured analysis fallback or provider override.
-- `OPENAI_MODEL`: optional OpenAI model override; default is `gpt-5-mini`.
-- `AI_ANALYSIS_PROVIDER`: optional provider preference; use `gemini` or `openai`. If unset, Gemini is preferred when configured.
+- 本版可見流程只有手動新增與編輯，不提供 AI、語音或草稿分析入口，也不會從頁面流程送出個案文字給模型服務。
+- 本工具預期放在登入後工作區；目前 standalone 預覽本身尚未實作帳號驗證，不應單獨作為正式個案資料系統。
 
-The AI import flow creates editable drafts only. A social worker or helping professional must confirm people, facts, time, place, objects, and the six-history classification before each draft is added to the timeline or decision cards.
+## 主要檔案
 
-## Files
+- `index.html`：時間軸首頁、五欄新增／編輯 dialog 與事件摘要 dialog。
+- `styles.css`：桌機與 390px 手機彈窗、頂部同步橫向控制、reduced-motion。
+- `app.js`：五欄事件模型、舊資料遷移、彈窗式新增／編輯與時間軸互動。
+- `robots.txt`、`vercel.json`：測試階段 noindex 提示；noindex 不是存取控制。
 
-- `index.html`: app shell
-- `styles.css`: responsive interface styling
-- `assets/case-timeline-warm-desk-v1.png`: generated warm desk/timeline masthead asset for the app shell
-- `app.js`: relationship timeline, household-member filters, in-list event editing, continuous period-event rendering, decision-card, AI import draft queue, sharing checklist, and XLSX export logic
-- `api/analyze.js`: optional Gemini/OpenAI structured analysis endpoint with browser-local fallback
-- `api/extract-file.js`: optional file text-extraction endpoint
-- `robots.txt`: review-stage search blocking hint
-- `vercel.json`: Vercel `X-Robots-Tag` noindex header
-- `RESEARCH_NOTES.md`: source-backed synthesis without republishing transcripts
-- `WIKI_CURATOR_P0_P1_CANDIDATE.md`: project-local reusable record for the P0/P1 onboarding and AI-draft review pattern
-- `test-fixtures/`: public-safe fake multi-year and multi-actor intake files for testing text/file import, draft splitting, and timeline draft generation
+## 本機啟動
+
+```powershell
+vercel dev --listen 127.0.0.1:4184
+```
+
+本版可提交 PR 供登入後工作區整合；正式部署與帳號／權限整合需另行確認。

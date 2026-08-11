@@ -1,14 +1,12 @@
 const DEFAULT_LANES = [
-  "居住遷移史",
-  "就業與就學史",
-  "感情與家庭史",
-  "疾病與身心健康史",
-  "社會資源使用歷程",
+  "居住遷徙史",
+  "就業就學史",
+  "感情家庭史",
+  "疾病健康史",
+  "社會資源使用史",
   "重大財務事件"
 ];
 
-const SENSITIVITY = ["一般", "內部", "高度敏感", "不可外部分享"];
-const CONFIDENCE = ["低", "中", "高"];
 const GEMINI_GENERATE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_OPENAI_MODEL = "gpt-5-mini";
@@ -29,13 +27,12 @@ module.exports = async function handler(req, res) {
 
   const text = String(body.text || "").trim();
   const lanes = Array.isArray(body.lanes) && body.lanes.length ? body.lanes : DEFAULT_LANES;
-
   if (text.length < 6) {
     return json(res, 400, { error: "input_too_short" });
   }
 
   const clippedText = text.slice(0, 18000);
-  const clippedWarning = clippedText.length < text.length ? "輸入過長，已先分析前 18,000 字元。" : "";
+  const clippedWarning = clippedText.length < text.length ? "輸入內容已截短為前 18,000 字。" : "";
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const openAiApiKey = process.env.OPENAI_API_KEY;
   const providers = buildProviderOrder(body.provider || process.env.AI_ANALYSIS_PROVIDER, {
@@ -45,8 +42,8 @@ module.exports = async function handler(req, res) {
 
   if (!providers.length) {
     return json(res, 200, localFallbackPayload(
-      "GEMINI_API_KEY / OPENAI_API_KEY is not configured; frontend should use local semantic rules.",
-      [clippedWarning, "尚未設定 AI API key，使用初步規則整理產生草稿。"].filter(Boolean)
+      "AI API 尚未設定，前端會改用瀏覽器內的基本語意規則。",
+      [clippedWarning, "本次沒有將文字送往外部 AI 服務。"].filter(Boolean)
     ));
   }
 
@@ -58,13 +55,13 @@ module.exports = async function handler(req, res) {
         : await runOpenAiAnalysis(clippedText, lanes, [clippedWarning], openAiApiKey);
       return json(res, 200, analysis);
     } catch (error) {
-      providerWarnings.push(`${provider === "gemini" ? "Gemini" : "OpenAI"} 語意整理暫時無法完成：${error.message}`);
+      providerWarnings.push(`${provider === "gemini" ? "Gemini" : "OpenAI"} 分析失敗：${error.message}`);
     }
   }
 
   return json(res, 200, localFallbackPayload(
-    "AI analysis failed; frontend should use local semantic rules.",
-    [clippedWarning, ...providerWarnings, "已改用初步規則整理產生草稿。"].filter(Boolean)
+    "外部 AI 分析失敗，前端會改用瀏覽器內的基本語意規則。",
+    [clippedWarning, ...providerWarnings].filter(Boolean)
   ));
 };
 
@@ -77,26 +74,14 @@ async function runGeminiAnalysis(text, lanes, baseWarnings, apiKey) {
       "x-goog-api-key": apiKey
     },
     body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: [
-                analysisInstructions(),
-                "",
-                "請把以下資料整理為生命軸線待確認草稿，只輸出符合 schema 的 JSON，不要輸出 Markdown。",
-                "",
-                text
-              ].join("\n")
-            }
-          ]
-        }
-      ],
+      contents: [{
+        role: "user",
+        parts: [{ text: `${analysisInstructions()}\n\n請依 schema 輸出 JSON，不要加入 Markdown。\n\n${text}` }]
+      }],
       generationConfig: {
         responseMimeType: "application/json",
         responseJsonSchema: analysisSchema(lanes),
-        maxOutputTokens: 2600,
+        maxOutputTokens: 2200,
         temperature: 0.2
       }
     })
@@ -106,7 +91,7 @@ async function runGeminiAnalysis(text, lanes, baseWarnings, apiKey) {
     throw new Error(data.error?.message || data.message || `Gemini analysis failed with ${response.status}.`);
   }
   const parsed = JSON.parse(stripJsonFences(extractGeminiOutputText(data)));
-  return normalizeAnalysis(parsed, collectWarnings(parsed, baseWarnings), "gemini");
+  return normalizeAnalysis(parsed, collectWarnings(parsed, baseWarnings), "gemini", lanes);
 }
 
 async function runOpenAiAnalysis(text, lanes, baseWarnings, apiKey) {
@@ -119,31 +104,15 @@ async function runOpenAiAnalysis(text, lanes, baseWarnings, apiKey) {
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
       store: false,
-      max_output_tokens: 2600,
+      max_output_tokens: 2200,
       input: [
-        {
-          role: "system",
-          content: [
-            {
-              type: "input_text",
-              text: analysisInstructions()
-            }
-          ]
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: `請把以下資料整理為生命軸線待確認草稿。\n\n${text}`
-            }
-          ]
-        }
+        { role: "system", content: [{ type: "input_text", text: analysisInstructions() }] },
+        { role: "user", content: [{ type: "input_text", text }] }
       ],
       text: {
         format: {
           type: "json_schema",
-          name: "case_timeline_analysis",
+          name: "case_timeline_five_field_analysis",
           strict: true,
           schema: analysisSchema(lanes)
         }
@@ -155,23 +124,21 @@ async function runOpenAiAnalysis(text, lanes, baseWarnings, apiKey) {
     throw new Error(data.error?.message || data.message || `OpenAI analysis failed with ${response.status}.`);
   }
   const parsed = parseResponseJson(data);
-  return normalizeAnalysis(parsed, collectWarnings(parsed, baseWarnings), "openai");
+  return normalizeAnalysis(parsed, collectWarnings(parsed, baseWarnings), "openai", lanes);
 }
 
 function analysisInstructions() {
   return [
-    "你是台灣社工與財務健康諮詢的個案脈絡整理助手。",
-    "任務是把資料整理成「待社工確認」的生命軸線草稿，不得直接下診斷、責備案主、提供投資或借貸建議。",
-    "請使用繁體中文與台灣常用語，民國年可填數字；不確定就留空字串。",
-    "若資料描述一段期間，請填 rocYear、endRocYear；若寫到至今、目前仍持續、仍在進行，ongoing 請填 true 並讓 endRocYear 留空。",
-    "請特別辨識居住遷移、就業與就學、感情與家庭、疾病與身心健康、社會資源使用、重大財務事件。",
-    "同一句話若包含多個人物、多個年份或多個金額，請盡量拆成多筆事件，不要把案主、案母、案父的不同事件混成同一筆。",
-    "請用事件核心分類：婚姻、交往、伴侶/親密關係才放感情與家庭史；親友提供生活費、負債、借貸、代繳、還款等即使涉及家人，主分類仍偏重大財務事件。",
-    "例如「個案於115年取得中低收入戶、案母每月提供5000元生活費、案父108年負債500萬」應拆成三筆：個案社會資源使用、案母重大財務支持、案父重大財務事件。",
-    "身心科、精神科、就醫、診斷、用藥、門診、住院、復健等主分類優先放疾病與身心健康史，不要誤放重大財務事件。",
-    "若事件同時牽涉其他面向，請放在 relatedLanes；若使用者可能想新增自訂分類，請只放在 extraTags，不要替換六大主分類。",
-    "每筆事件請保留 sourceText 原文摘錄，並整理 actorText、place、objects，方便社工確認人事時地物後再歸檔。",
-    "請把個案決策理解為資源、風險、制度條件、關係壓力與能力限制下的選擇，不要用道德評價。"
+    "你是協助台灣助人工作者整理生命歷程事件的資料整理助手。",
+    "只抽取事件，不做診斷、風險評分、法律判斷、理財建議或處遇建議。",
+    "每一筆事件只保留：rocYear、rocMonth、actor、lane、summary。",
+    "rocYear 使用民國年數字字串；若原文是西元年，請正確換算為民國年。",
+    "rocMonth 使用 1 到 12 的數字字串。原文沒有月份時必須輸出空字串，不可猜測或自動補 1 月。",
+    "actor 是事件發生人物。多人在不同情境或時間發生事件時，拆成不同事件。",
+    "lane 必須從提供的六個事件大分類中選一個最主要分類。",
+    "summary 使用簡潔、客觀、去推測的繁體中文，保留原意，不加入來源未提及的因果。",
+    "同一段如果包含不同年月、人物或分類，應拆成多筆事件。",
+    "warnings 只放無法可靠判斷的整體提示；不要額外輸出其他欄位。"
   ].join("\n");
 }
 
@@ -179,70 +146,21 @@ function analysisSchema(lanes) {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["events", "decisions", "warnings"],
+    required: ["events", "warnings"],
     properties: {
       events: {
         type: "array",
-        maxItems: 10,
+        maxItems: 16,
         items: {
           type: "object",
           additionalProperties: false,
-          required: [
-            "rocYear",
-            "endRocYear",
-            "ongoing",
-            "age",
-            "lane",
-            "relatedLanes",
-            "extraTags",
-            "title",
-            "fact",
-            "voice",
-            "actorText",
-            "place",
-            "objects",
-            "sourceText",
-            "impact",
-            "unknowns",
-            "sensitivity",
-            "confidence"
-          ],
+          required: ["rocYear", "rocMonth", "actor", "lane", "summary"],
           properties: {
-            rocYear: { type: "string", description: "民國年數字；不確定留空字串。" },
-            endRocYear: { type: "string", description: "若事件有結束年份，填民國年數字；單次事件、未知或仍持續時留空字串。" },
-            ongoing: { type: "boolean", description: "事件是否仍在持續，例如婚姻、工作、學業、債務協商、照顧安排仍未結束。" },
-            age: { type: "string", description: "案主年齡數字；不確定留空字串。" },
+            rocYear: { type: "string", description: "民國年數字字串" },
+            rocMonth: { type: "string", description: "1 到 12；原文未提供時為空字串" },
+            actor: { type: "string", description: "事件發生人物" },
             lane: { type: "string", enum: lanes },
-            relatedLanes: { type: "array", maxItems: 5, items: { type: "string", enum: lanes }, description: "同一事件的次要關聯面向；不要包含主分類。" },
-            extraTags: { type: "string", description: "使用者可能想自訂追蹤的補充標籤，例如親友金錢支援、福利身分、債務壓力；可留空。" },
-            title: { type: "string" },
-            fact: { type: "string" },
-            voice: { type: "string" },
-            actorText: { type: "string", description: "原文中辨識到的人物角色，例如案主、案母、案父；不確定留空。" },
-            place: { type: "string", description: "地點、窗口或機構，例如租屋處、社福中心、銀行；不確定留空。" },
-            objects: { type: "string", description: "金額、文件、資源或債務物件，例如5000元、中低收入戶、債務清冊；不確定留空。" },
-            sourceText: { type: "string", description: "支持此事件的短原文摘錄，避免混入其他事件。" },
-            impact: { type: "string" },
-            unknowns: { type: "string" },
-            sensitivity: { type: "string", enum: SENSITIVITY },
-            confidence: { type: "string", enum: CONFIDENCE }
-          }
-        }
-      },
-      decisions: {
-        type: "array",
-        maxItems: 6,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["eventId", "question", "options", "fear", "interpretation", "confidence"],
-          properties: {
-            eventId: { type: "string" },
-            question: { type: "string" },
-            options: { type: "string" },
-            fear: { type: "string" },
-            interpretation: { type: "string" },
-            confidence: { type: "string", enum: CONFIDENCE }
+            summary: { type: "string", description: "客觀、精簡的事件摘要" }
           }
         }
       },
@@ -255,37 +173,19 @@ function analysisSchema(lanes) {
   };
 }
 
-function normalizeAnalysis(parsed, warnings, mode) {
+function normalizeAnalysis(parsed, warnings, mode, lanes = DEFAULT_LANES) {
   return {
     mode,
-    events: (Array.isArray(parsed.events) ? parsed.events : []).map((item) => ({
-      rocYear: String(item.rocYear || ""),
-      endRocYear: String(item.endRocYear || ""),
-      ongoing: Boolean(item.ongoing),
-      age: String(item.age || ""),
-      lane: String(item.lane || "重大財務事件"),
-      relatedLanes: Array.isArray(item.relatedLanes) ? item.relatedLanes.filter((lane) => DEFAULT_LANES.includes(lane) && lane !== item.lane) : [],
-      extraTags: String(item.extraTags || ""),
-      title: String(item.title || "待確認事件"),
-      fact: String(item.fact || ""),
-      voice: String(item.voice || ""),
-      actorText: String(item.actorText || ""),
-      place: String(item.place || ""),
-      objects: String(item.objects || ""),
-      sourceText: String(item.sourceText || item.fact || ""),
-      impact: String(item.impact || ""),
-      unknowns: String(item.unknowns || ""),
-      sensitivity: SENSITIVITY.includes(item.sensitivity) ? item.sensitivity : "內部",
-      confidence: CONFIDENCE.includes(item.confidence) ? item.confidence : "低"
-    })),
-    decisions: (Array.isArray(parsed.decisions) ? parsed.decisions : []).map((item) => ({
-      eventId: String(item.eventId || ""),
-      question: String(item.question || "待確認決策問題"),
-      options: String(item.options || ""),
-      fear: String(item.fear || ""),
-      interpretation: String(item.interpretation || ""),
-      confidence: CONFIDENCE.includes(item.confidence) ? item.confidence : "低"
-    })),
+    events: (Array.isArray(parsed.events) ? parsed.events : []).map((item) => {
+      const month = String(item.rocMonth || "").trim();
+      return {
+        rocYear: String(item.rocYear || "").replace(/\D/g, ""),
+        rocMonth: /^(?:[1-9]|1[0-2])$/.test(month) ? month : "",
+        actor: String(item.actor || "").trim(),
+        lane: lanes.includes(item.lane) ? item.lane : DEFAULT_LANES[5],
+        summary: String(item.summary || "").trim()
+      };
+    }).filter((item) => item.rocYear && item.actor && item.summary),
     warnings
   };
 }
@@ -309,13 +209,7 @@ function buildProviderOrder(preferred, availability) {
 }
 
 function localFallbackPayload(message, warnings) {
-  return {
-    mode: "local-fallback",
-    message,
-    events: [],
-    decisions: [],
-    warnings
-  };
+  return { mode: "local-fallback", message, events: [], warnings };
 }
 
 function parseResponseJson(data) {
