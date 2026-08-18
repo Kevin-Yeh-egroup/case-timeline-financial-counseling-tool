@@ -11,38 +11,25 @@
   <body>
     <main class="app-shell">
       <section class="tool-app" id="toolApp">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">助人者生命歷程</p>
-            <h1>把事件放回時間脈絡</h1>
-            <p>每筆事件只保留五個必要欄位。</p>
-          </div>
-          <div class="release-badge" aria-label="版本資訊">
-            <span>測試版 v0.42</span>
-            <span>更新：2026/08/11（台北時間）</span>
-          </div>
-        </header>
-
         <dialog class="input-dialog" id="inputDialog" aria-labelledby="inputDialogTitle">
           <div class="input-dialog-shell">
             <header class="dialog-head input-dialog-head">
-              <div><p class="eyebrow">整理生命歷程</p><h2 id="inputDialogTitle">新增事件</h2></div>
+              <h2 id="inputDialogTitle">新增事件</h2>
               <button class="dialog-close" id="closeInputDialog" type="button" aria-label="關閉新增事件視窗">×</button>
             </header>
             <section class="input-entry" id="inputEntry">
-              <section class="manual-panel" id="manualPanel" aria-labelledby="manualTitle">
-                <div class="panel-head">
-                  <div><p class="eyebrow">事件內容</p><h3 id="manualTitle">新增一筆事件</h3></div>
-                </div>
+              <div class="input-mode-switch" id="inputModeSwitch" role="tablist" aria-label="新增方式">
+                <button class="input-mode-button active" id="manualModeButton" type="button" role="tab" aria-selected="true" aria-controls="manualPanel">手動新增</button>
+                <button class="input-mode-button" id="aiModeButton" type="button" role="tab" aria-selected="false" aria-controls="aiPanel" tabindex="-1">AI 協助整理</button>
+              </div>
+              <section class="manual-panel" id="manualPanel" role="tabpanel" aria-labelledby="manualModeButton">
                 <form id="eventForm" class="event-form">
                   <input id="eventId" name="eventId" type="hidden" />
                   <div class="date-fields">
-                    <label>年度
-                      <span class="field-hint">民國年</span>
+                    <label>年度（民國）
                       <input id="eventYear" name="rocYear" type="number" min="1" max="200" inputmode="numeric" required />
                     </label>
                     <label>月份
-                      <span class="field-hint">不知道可選待確認</span>
                       <select id="eventMonth" name="rocMonth">
                         <option value="">月份待確認</option>
                         <option value="1">1 月</option><option value="2">2 月</option><option value="3">3 月</option>
@@ -53,7 +40,6 @@
                     </label>
                   </div>
                   <label>事件人物
-                    <span class="field-hint">可填姓名或角色稱謂</span>
                     <input id="eventActor" name="actor" type="text" maxlength="40" placeholder="例如：王小明、案主、主要照顧者" required />
                   </label>
                   <label>事件大分類
@@ -67,7 +53,6 @@
                     </select>
                   </label>
                   <label>事件摘要
-                    <span class="field-hint">只寫發生什麼事，建議 20–100 字</span>
                     <textarea id="eventSummary" name="summary" rows="4" maxlength="300" placeholder="例如：開始餐飲排班工作，因照顧孩子偶爾需要請假。" required></textarea>
                   </label>
                   <div class="form-status" id="manualStatus" role="status" aria-live="polite"></div>
@@ -77,13 +62,41 @@
                   </div>
                 </form>
               </section>
+              <section class="ai-panel" id="aiPanel" role="tabpanel" aria-labelledby="aiModeButton" hidden>
+                <div class="ai-source-switch" role="group" aria-label="待整理內容輸入方式">
+                  <button class="ai-source-button active" id="aiTextSource" type="button" aria-pressed="true">貼上文字</button>
+                  <button class="ai-source-button" id="aiVoiceSource" type="button" aria-pressed="false">語音輸入</button>
+                </div>
+                <section class="voice-controls" id="voiceControls" aria-label="語音輸入控制" hidden>
+                  <div class="voice-actions">
+                    <button class="ghost" id="startVoice" type="button">開始語音輸入</button>
+                    <button class="ghost" id="stopVoice" type="button" disabled>停止</button>
+                  </div>
+                  <div class="voice-status" id="voiceStatus" role="status" aria-live="polite">辨識文字會出現在下方，可先修改再整理。</div>
+                </section>
+                <label id="aiInputLabel" for="aiInputText"><span id="aiInputLabelText">貼上待整理內容</span>
+                  <textarea id="aiInputText" rows="7" maxlength="18000" placeholder="例如：案主於民國 115 年 3 月開始餐飲排班工作；案主於民國 115 年 7 月取得中低收入戶資格。"></textarea>
+                </label>
+                <p class="privacy-note">請勿輸入或說出身分證、電話、地址等可識別資訊。語音辨識由瀏覽器服務提供；整理結果仍需人工確認。</p>
+                <div class="form-status" id="aiStatus" role="status" aria-live="polite">AI 會辨識年月、人物、分類與事件摘要；沒有月份時保留待確認。</div>
+                <div class="form-actions">
+                  <button class="primary" id="analyzeButton" type="button">整理成待確認草稿</button>
+                </div>
+                <section class="draft-section" id="draftSection" aria-labelledby="draftTitle" hidden>
+                  <div class="draft-head">
+                    <h3 id="draftTitle">待確認草稿</h3>
+                    <span id="draftCount"></span>
+                  </div>
+                  <div class="draft-list" id="draftList"></div>
+                </section>
+              </section>
             </section>
           </div>
         </dialog>
 
         <section class="timeline-section" id="timelineSection" aria-labelledby="timelineTitle">
           <div class="timeline-title-row">
-            <div><p class="eyebrow">閱讀模式</p><h2 id="timelineTitle">生命歷程時間軸</h2><p>分類看直列、時間看橫向；點事件才展開摘要。</p></div>
+            <h1 id="timelineTitle">生命歷程時間軸</h1>
             <div class="timeline-actions">
               <button class="primary" id="addEventButton" type="button">新增事件</button>
             </div>
@@ -109,8 +122,7 @@
             <div class="timeline-chart" id="timelineChart" role="region" aria-label="依年月與事件分類排列的生命歷程時間軸"></div>
           </div>
           <div class="timeline-empty" id="timelineEmpty">
-            <strong>時間軸還是空的</strong>
-            <span>新增第一筆事件，建立生命歷程。</span>
+            <strong>尚無事件</strong>
             <div class="empty-actions">
               <button class="primary" id="emptyAddEventButton" type="button">新增第一筆事件</button>
             </div>
