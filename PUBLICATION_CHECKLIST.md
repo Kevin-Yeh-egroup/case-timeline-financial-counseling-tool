@@ -11,6 +11,7 @@
 
 - [x] 首頁直接顯示時間軸，不再顯示入口頁或獨立的「開始整理」區塊。
 - [x] 首頁操作區只保留「新增事件」；空白狀態也只提供新增事件。
+- [x] 空白狀態以「重大事件」說明第一步，與好理家在說明頁的生命脈絡定位一致。
 - [x] 首屏已移除宣傳標語、版本卡、工具規格說明與重複操作提示。
 - [x] 「新增事件」與空白狀態按鈕開啟五欄輸入彈窗。
 - [x] 新增彈窗預設「手動新增」，並可切換「AI 協助整理」。
@@ -61,5 +62,6 @@
 ## 發布狀態
 
 - 本機版本：`v0.43-ai-voice-assisted-timeline`
-- 本次只產生本機預覽，尚未 commit、push、更新 Draft PR 或部署。
-- 更新 Draft PR 或正式發布都需 Kevin 預覽後明確核准。
+- 原分支：`issue/2155-case-timeline-v043-ai-assist`；Draft PR：`#2`，目標為 `main`。
+- 好理家在 `/toolbox/case-timeline/workspace` 使用正式網域 `https://case-timeline-financial-counseling.vercel.app/#tool`，因此 PR 合併不等於完成：必須等 Vercel Production 變成 Ready，再從好理家在 dev 工作區讀回實際 iframe 內容。
+- 2026-08-20 排查時，正式工具網域仍是舊 v0.35；新版只存在原分支與受保護的 Vercel Preview。將 PR #2 合併並完成 Production 部署，才會修正好理家在工作區內容不一致。
